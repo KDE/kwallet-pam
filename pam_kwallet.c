@@ -183,7 +183,7 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const c
     return PAM_SUCCESS;
 }
 
-int main(int argc, char **argv)
+int kwallet_hash(const char *passphrase, const char *username, char *key, size_t keySize)
 {
     if (!gcry_check_version("1.6.0"))
     {
@@ -200,9 +200,9 @@ int main(int argc, char **argv)
     }
     gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
-    const char *passphrase = "visheshisanubplayingmduel";
-    const char *salt = "afiestas";
-    char key[64];
-    error = gcry_kdf_derive(passphrase, strlen(passphrase), GCRY_KDF_PBKDF2, GCRY_MD_SHA512, salt, strlen(salt), 500000, sizeof key, key);
+    error = gcry_kdf_derive(passphrase, strlen(passphrase),
+                            GCRY_KDF_PBKDF2, GCRY_MD_SHA512,
+                            username, strlen(username),
+                            500000, keySize, key);
     return 0;
 }
