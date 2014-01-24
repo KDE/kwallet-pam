@@ -16,11 +16,15 @@ set(pam_kwallet_SRCS
    pam_kwallet.c
 )
 
-# add_library(pam_kwallet SHARED ${pam_kwallet_SRCS})
-# set_target_properties (pam_kwallet PROPERTIES PREFIX "")
+add_executable(pam_kwallettest ${pam_kwallet_SRCS})
 
-add_executable(pam_kwallet ${pam_kwallet_SRCS})
+target_link_libraries (pam_kwallettest
+   ${PAM_LIBRARIES}
+   ${LIBGCRYPT_LIBRARIES}
+)
 
+add_library (pam_kwallet SHARED ${pam_kwallet_SRCS})
+set_target_properties (pam_kwallet PROPERTIES PREFIX "")
 target_link_libraries (pam_kwallet
    ${PAM_LIBRARIES}
    ${LIBGCRYPT_LIBRARIES}
