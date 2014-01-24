@@ -171,6 +171,33 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
 PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
     printf("pam_sm_open_session\n");
+
+    int result;
+
+     //Fetch the user, needed to get user information
+    const char *username;
+    result = pam_get_user(pamh, &username, NULL);
+    if (result != PAM_SUCCESS) {
+        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Couldn't get username %s",
+                   pam_strerror(pamh, result));
+        return PAM_IGNORE;//Since we are not an essential module, just make pam ignore us
+    }
+
+    struct passwd *userInfo;
+    userInfo = getpwnam(username);
+    if (!userInfo) {
+        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Couldn't get user info (passwd) info");
+        return PAM_IGNORE;
+    }
+
+    const char *kwalletKey;
+    result = pam_get_data(pamh, "kwallet_key", (const void **)&kwalletKey);
+
+    if (result != PAM_SUCCESS) {
+        pam_syslog(pamh, LOG_INFO, "pam_kwallet: open_session called without kwallet_key");
+        return PAM_IGNORE;
+    }
+
     return PAM_SUCCESS;
 }
 
