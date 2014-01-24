@@ -38,8 +38,7 @@ int main(int argc, char **argv)
 
     const char *passphrase = "visheshisanubplayingmduel";
     const char *salt = "afiestas";
-    char key[16];
-    error = gcry_kdf_derive(passphrase, strlen(passphrase), GCRY_KDF_PBKDF2, GCRY_MD_SHA256, salt, strlen(salt), 500000, sizeof key, key);
-    printf("key: %d\n", error);
+    char key[64];
+    error = gcry_kdf_derive(passphrase, strlen(passphrase), GCRY_KDF_PBKDF2, GCRY_MD_SHA512, salt, strlen(salt), 500000, sizeof key, key);
     return 0;
 }
