@@ -147,6 +147,16 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
         return PAM_IGNORE;
     }
 
+    char key[64];
+    kwallet_hash(password, username, key, sizeof key);
+
+    result = pam_set_data(pamh, "kwallet_key", strdup(key), NULL);
+    if (result != PAM_SUCCESS) {
+        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to store the hashed password: %s"
+            , pam_strerror(pamh, result));
+        return PAM_IGNORE;
+    }
+
     //At this point we are ready to go.
     //We check if the session has started, if not we wait for open_session
     if (!get_env(pamh, "KWALLET_SESSION_STARTED")) {
