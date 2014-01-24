@@ -203,6 +203,6 @@ int kwallet_hash(const char *passphrase, const char *username, char *key, size_t
     error = gcry_kdf_derive(passphrase, strlen(passphrase),
                             GCRY_KDF_PBKDF2, GCRY_MD_SHA512,
                             username, strlen(username),
-                            500000, keySize, key);
+                            50000, keySize, key);
     return 0;
 }
