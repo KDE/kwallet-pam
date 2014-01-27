@@ -303,6 +303,7 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, cons
     }
 
     start_kwallet(pamh, userInfo, kwalletKey);
+
     return PAM_SUCCESS;
 }
 
