@@ -18,6 +18,9 @@
 
 #include <gcrypt.h>
 #include <stdio.h>
+#include <signal.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 #define PAM_SM_PASSWORD
 #define PAM_SM_SESSION
@@ -44,6 +47,27 @@ get_env (pam_handle_t *ph, const char *name)
     }
 
     return NULL;
+}
+
+static int set_env(pam_handle_t *pamh, const char *name, const char *value)
+{
+    if (setenv(name, value, 1) < 0) {
+        pam_syslog(pamh, LOG_WARNING, "pam_kwallet: Couldn't setenv %s = %s", name, value);
+        //We do not return because pam_putenv might work
+    }
+
+    char *pamEnv = malloc(strlen(name) + strlen(value) + 2); //2 is for = and \0
+    if (!pamEnv) {
+        pam_syslog(pamh, LOG_WARNING, "pam_kwallet: Impossible to allocate memory for pamEnv");
+        return -1;
+    }
+
+    sprintf(pamEnv, "%s=%s", name, value);
+    printf("PAMENV %s\n", pamEnv);
+    int ret = pam_putenv(pamh, pamEnv);
+    free(pamEnv);
+
+    return ret;
 }
 
 static int prompt_for_password(pam_handle_t *pamh)
@@ -168,6 +192,86 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     return PAM_SUCCESS;
 }
 
+static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toWalletPipe[2])
+{
+
+    //Make our reading end of the pipe "point" to stdin
+    if (dup2(toWalletPipe[0], 0) < 0) {
+        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to dup pipe into stdin");
+        return;
+    }
+
+    int x = 2;
+    //Clean all possible open FD, execve doesn't do that for us
+    for (; x < 64; ++x) {
+        close (x);
+    }
+
+    //We don't need these anymore
+    close (toWalletPipe[0]);
+    close (toWalletPipe[1]);
+
+    if (setgid (userInfo->pw_gid) < 0 || setuid (userInfo->pw_uid) < 0 ||
+        setegid (userInfo->pw_gid) < 0 || seteuid (userInfo->pw_uid) < 0) {
+        pam_syslog(pamh, LOG_ERR, "pam_kwallet: could not set gid/uid/euid/egit for kwalletd");
+        return;
+    }
+
+    int result = set_env(pamh, "HOME", userInfo->pw_dir);
+    if (result < 0) {
+        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to set home env");
+        return;
+    }
+
+    const char *display = get_env(pamh, "DISPLAY");
+    if (!display) {
+        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to get DISPLAY env, kwallet will crash...");
+        return;
+    }
+
+    //Set in pam as well
+    result = set_env(pamh, "DISPLAY", display);
+    if (result != PAM_SUCCESS) {
+        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to set DISPLAY env, %s", pam_strerror(pamh, result));
+        return;
+    }
+
+    char *args[] = {"/opt/kde4/bin/kwalletd", "--pam_login", NULL};
+    execve(args[0], args, pam_getenvlist(pamh));
+    pam_syslog(pamh, LOG_ERR, "pam_kwallet: could not execute kwalletd");
+}
+static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const char *kwalletKey)
+{
+    //Just in case we get broken pipe, do not break the pam process..
+    struct sigaction sigPipe, oldSigPipe;
+    memset (&sigPipe, 0, sizeof (sigPipe));
+    memset (&oldSigPipe, 0, sizeof (oldSigPipe));
+    sigPipe.sa_handler = SIG_IGN;
+    sigaction (SIGPIPE, &sigPipe, &oldSigPipe);
+
+    int toWalletPipe[2] = { -1, -1 };
+    if (pipe(toWalletPipe) < 0) {
+        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Couldn't create pipes");
+    }
+
+    pid_t pid;
+    switch (pid = fork ()) {
+    case -1:
+        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Couldn't fork to execv kwalletd");
+        return;
+
+    //Child fork, will contain kwalletd
+    case 0:
+        execute_kwallet(pamh, userInfo, toWalletPipe);
+        /* Should never be reached */
+        break;
+
+    //Parent
+    default:
+        break;
+    };
+}
+
 PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
     printf("pam_sm_open_session\n");
@@ -198,6 +302,7 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, cons
         return PAM_IGNORE;
     }
 
+    start_kwallet(pamh, userInfo, kwalletKey);
     return PAM_SUCCESS;
 }
 
