@@ -31,12 +31,9 @@
 #include <security/pam_ext.h>
 #include <security/_pam_types.h>
 
-static const char*
-get_env (pam_handle_t *ph, const char *name)
+static const char* get_env(pam_handle_t *ph, const char *name)
 {
-    const char *env;
-
-    env = pam_getenv (ph, name);
+    const char *env = pam_getenv (ph, name);
     if (env && env[0]) {
         return env;
     }
