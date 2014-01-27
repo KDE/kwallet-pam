@@ -195,7 +195,7 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
     //Make our reading end of the pipe "point" to stdin
     if (dup2(toWalletPipe[0], 0) < 0) {
         pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to dup pipe into stdin");
-        return;
+        goto cleanup;
     }
 
     int x = 2;
@@ -211,31 +211,34 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
     if (setgid (userInfo->pw_gid) < 0 || setuid (userInfo->pw_uid) < 0 ||
         setegid (userInfo->pw_gid) < 0 || seteuid (userInfo->pw_uid) < 0) {
         pam_syslog(pamh, LOG_ERR, "pam_kwallet: could not set gid/uid/euid/egit for kwalletd");
-        return;
+        goto cleanup;
     }
 
     int result = set_env(pamh, "HOME", userInfo->pw_dir);
     if (result < 0) {
         pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to set home env");
-        return;
+        goto cleanup;
     }
 
     const char *display = get_env(pamh, "DISPLAY");
     if (!display) {
         pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to get DISPLAY env, kwallet will crash...");
-        return;
+        goto cleanup;
     }
 
     //Set in pam as well
     result = set_env(pamh, "DISPLAY", display);
     if (result != PAM_SUCCESS) {
         pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to set DISPLAY env, %s", pam_strerror(pamh, result));
-        return;
+        goto cleanup;
     }
 
     char *args[] = {"/opt/kde4/bin/kwalletd", "--pam_login", NULL};
     execve(args[0], args, pam_getenvlist(pamh));
     pam_syslog(pamh, LOG_ERR, "pam_kwallet: could not execute kwalletd");
+
+cleanup:
+    exit(EXIT_FAILURE);
 }
 static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const char *kwalletKey)
 {
