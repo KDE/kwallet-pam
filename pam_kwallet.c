@@ -240,6 +240,24 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
 cleanup:
     exit(EXIT_FAILURE);
 }
+
+static int better_write(int fd, const char *buffer, int len)
+{
+    size_t writtenBytes = 0;
+    size_t result;
+    while(writtenBytes < len) {
+        result = write(fd, buffer + writtenBytes, len - writtenBytes);
+        printf("Result write %d\n", result);
+        if (result < 0) {
+            if (errno != EAGAIN && errno != EINTR) {
+                return -1;
+            }
+        }
+        writtenBytes += result;
+    }
+
+    return 0;
+}
 static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const char *kwalletKey)
 {
     //Just in case we get broken pipe, do not break the pam process..
@@ -270,6 +288,14 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
     default:
         break;
     };
+
+    close(toWalletPipe[0]);//Read end of the pipe, we will only use the write
+    if (better_write(toWalletPipe[1], kwalletKey, 56) < 0) {
+        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to write walletKey to walletPipe");
+        return;
+    }
+
+    close(toWalletPipe[1]);
 }
 
 PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **argv)
