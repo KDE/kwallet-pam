@@ -168,10 +168,10 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
         return PAM_IGNORE;
     }
 
-    char key[64];
-    kwallet_hash(password, username, key, sizeof key);
+    char *key = malloc(sizeof(char) * 56);
+    kwallet_hash(password, username, key, 56);
 
-    result = pam_set_data(pamh, "kwallet_key", strdup(key), NULL);
+    result = pam_set_data(pamh, "kwallet_key", key, NULL);
     if (result != PAM_SUCCESS) {
         pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to store the hashed password: %s"
             , pam_strerror(pamh, result));
