@@ -328,8 +328,7 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const c
 
 int kwallet_hash(const char *passphrase, const char *username, char *key, size_t keySize)
 {
-    if (!gcry_check_version("1.6.0"))
-    {
+    if (!gcry_check_version("1.6.0")) {
         printf("libcrypt version is too old \n");
         return 1;
     }
