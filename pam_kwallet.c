@@ -35,6 +35,8 @@
 
 #define KWALLET_PAM_KEYSIZE 56
 #define KWALLET_PAM_SALTSIZE 56
+#define KWALLET_PAM_ITERATIONS 50000
+
 static const char* get_env(pam_handle_t *ph, const char *name)
 {
     const char *env = pam_getenv (ph, name);
@@ -387,6 +389,6 @@ int kwallet_hash(const char *passphrase, const char *username, char *key)
     error = gcry_kdf_derive(passphrase, strlen(passphrase),
                             GCRY_KDF_PBKDF2, GCRY_MD_SHA512,
                             salt, KWALLET_PAM_SALTSIZE,
-                            50000, KWALLET_PAM_KEYSIZE, key);
+                            KWALLET_PAM_ITERATIONS,KWALLET_PAM_KEYSIZE, key);
     return 0;
 }
