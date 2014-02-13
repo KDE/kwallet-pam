@@ -73,6 +73,32 @@ static int set_env(pam_handle_t *pamh, const char *name, const char *value)
     return ret;
 }
 
+/**
+ * Code copied from gkr-pam-module.c, GPL2+
+ */
+static void wipeString(char *str)
+{
+    if (!str) {
+        return;
+    }
+
+    size_t len;
+    volatile char *vp;
+
+    /* Defeats some optimizations */
+    len = strlen (str);
+    memset (str, 0xAA, len);
+    memset (str, 0xBB, len);
+
+    /* Defeats others */
+    vp = (volatile char*)str;
+    while (*vp) {
+        *(vp++) = 0xAA;
+    }
+
+    free (str);
+}
+
 static int prompt_for_password(pam_handle_t *pamh)
 {
     int result;
@@ -112,7 +138,7 @@ static int prompt_for_password(pam_handle_t *pamh)
     //Set the password in PAM memory
     char *password = response[0].resp;
     result = pam_set_item(pamh, PAM_AUTHTOK, password);
-    free(password);//TODO Make sure we actually erase this from memory
+    wipeString(password);
 
     if (result != PAM_SUCCESS) {
         goto cleanup;
