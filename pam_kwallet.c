@@ -214,8 +214,9 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
         goto cleanup;
     }
 
+    int result = set_env(pamh, "PAM_KWALLET_LOGIN", "1");
     if (result != PAM_SUCCESS) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to set DISPLAY env, %s", pam_strerror(pamh, result));
+        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to set PAM_KWALLET_LOGIN env, %s", pam_strerror(pamh, result));
         goto cleanup;
     }
 
