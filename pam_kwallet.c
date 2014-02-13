@@ -340,6 +340,17 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const c
     return PAM_SUCCESS;
 }
 
+static char* createNewSalt(const char *path)
+{
+    unlink(path);
+
+    char *salt = gcry_random_bytes(56, GCRY_STRONG_RANDOM);
+    FILE *fd = fopen(path, "w");
+    fwrite(salt, 56, 1, fd);
+    fclose(fd);
+
+    return salt;
+}
 int kwallet_hash(const char *passphrase, const char *username, char *key, size_t keySize)
 {
     if (!gcry_check_version("1.6.0")) {
