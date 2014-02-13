@@ -214,20 +214,6 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
         goto cleanup;
     }
 
-    int result = set_env(pamh, "HOME", userInfo->pw_dir);
-    if (result < 0) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to set home env");
-        goto cleanup;
-    }
-
-    const char *display = get_env(pamh, "DISPLAY");
-    if (!display) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to get DISPLAY env, kwallet will crash...");
-        goto cleanup;
-    }
-
-    //Set in pam as well
-    result = set_env(pamh, "DISPLAY", display);
     if (result != PAM_SUCCESS) {
         pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to set DISPLAY env, %s", pam_strerror(pamh, result));
         goto cleanup;
