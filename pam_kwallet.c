@@ -33,6 +33,8 @@
 #include <security/pam_ext.h>
 #include <security/_pam_types.h>
 
+#define KWALLET_PAM_KEYSIZE 56
+#define KWALLET_PAM_SALTSIZE 56
 static const char* get_env(pam_handle_t *ph, const char *name)
 {
     const char *env = pam_getenv (ph, name);
@@ -170,8 +172,8 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
         return PAM_IGNORE;
     }
 
-    char *key = malloc(sizeof(char) * 56);
-    kwallet_hash(password, username, key, 56);
+    char *key = malloc(sizeof(char) * KWALLET_PAM_KEYSIZE);
+    kwallet_hash(password, username, key);
 
     result = pam_set_data(pamh, "kwallet_key", key, NULL);
     if (result != PAM_SUCCESS) {
@@ -280,7 +282,7 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
     };
 
     close(toWalletPipe[0]);//Read end of the pipe, we will only use the write
-    if (better_write(toWalletPipe[1], kwalletKey, 56) < 0) {
+    if (better_write(toWalletPipe[1], kwalletKey, KWALLET_PAM_KEYSIZE) < 0) {
         pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to write walletKey to walletPipe");
         return;
     }
@@ -346,14 +348,14 @@ static char* createNewSalt(const char *path)
 {
     unlink(path);
 
-    char *salt = gcry_random_bytes(56, GCRY_STRONG_RANDOM);
+    char *salt = gcry_random_bytes(KWALLET_PAM_SALTSIZE, GCRY_STRONG_RANDOM);
     FILE *fd = fopen(path, "w");
-    fwrite(salt, 56, 1, fd);
+    fwrite(salt, KWALLET_PAM_SALTSIZE, 1, fd);
     fclose(fd);
 
     return salt;
 }
-int kwallet_hash(const char *passphrase, const char *username, char *key, size_t keySize)
+int kwallet_hash(const char *passphrase, const char *username, char *key)
 {
     if (!gcry_check_version("1.6.0")) {
         printf("libcrypt version is too old \n");
@@ -368,9 +370,9 @@ int kwallet_hash(const char *passphrase, const char *username, char *key, size_t
         salt = createNewSalt(path);
     } else {
         FILE *fd = fopen(path, "r");
-        salt = (char*) malloc(56);
-        memset(salt, '\0', 56);
-        fread(salt, 56, 1, fd);
+        salt = (char*) malloc(sizeof(char) * KWALLET_PAM_SALTSIZE);
+        memset(salt, '\0', KWALLET_PAM_SALTSIZE);
+        fread(salt, KWALLET_PAM_SALTSIZE, 1, fd);
         fclose(fd);
     }
 
@@ -384,7 +386,7 @@ int kwallet_hash(const char *passphrase, const char *username, char *key, size_t
 
     error = gcry_kdf_derive(passphrase, strlen(passphrase),
                             GCRY_KDF_PBKDF2, GCRY_MD_SHA512,
-                            salt, 56,
-                            50000, keySize, key);
+                            salt, KWALLET_PAM_SALTSIZE,
+                            50000, KWALLET_PAM_KEYSIZE, key);
     return 0;
 }
