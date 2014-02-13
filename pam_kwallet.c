@@ -219,7 +219,8 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
         goto cleanup;
     }
 
-    char *args[] = {"/opt/kde4/bin/kwalletd", "--pam_login", NULL};
+    //TODO use a pam argument for full path kwalletd
+    char *args[] = {"/opt/kde4/bin/kwalletd", "--pam-login", NULL};
     execve(args[0], args, pam_getenvlist(pamh));
     pam_syslog(pamh, LOG_ERR, "pam_kwallet: could not execute kwalletd");
 
