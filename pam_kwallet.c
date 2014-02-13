@@ -26,6 +26,7 @@
 #define PAM_SM_SESSION
 #define PAM_SM_AUTH
 #include <pwd.h>
+#include <sys/stat.h>
 #include <sys/syslog.h>
 #include <security/pam_modules.h>
 #include <security/pam_ext.h>
@@ -359,6 +360,19 @@ int kwallet_hash(const char *passphrase, const char *username, char *key, size_t
     }
     printf("libcrypt initialized\n");
 
+    struct stat info;
+    char *salt = NULL;
+    char *path = "/home/afiestas/.kde4/share/apps/kwallet/kdewallet.salt";
+    if (stat(path, &info) != 0 || info.st_size == 0) {
+        salt = createNewSalt(path);
+    } else {
+        FILE *fd = fopen(path, "r");
+        salt = (char*) malloc(56);
+        memset(salt, '\0', 56);
+        fread(salt, 56, 1, fd);
+        fclose(fd);
+    }
+
     gcry_error_t error;
     error = gcry_control(GCRYCTL_INIT_SECMEM, 32768, 0);
     if (error != 0) {
@@ -369,7 +383,7 @@ int kwallet_hash(const char *passphrase, const char *username, char *key, size_t
 
     error = gcry_kdf_derive(passphrase, strlen(passphrase),
                             GCRY_KDF_PBKDF2, GCRY_MD_SHA512,
-                            username, strlen(username),
+                            salt, 56,
                             50000, keySize, key);
     return 0;
 }
