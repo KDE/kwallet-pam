@@ -246,12 +246,6 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
         goto cleanup;
     }
 
-    int result = set_env(pamh, "PAM_KWALLET_LOGIN", "1");
-    if (result != PAM_SUCCESS) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to set PAM_KWALLET_LOGIN env, %s", pam_strerror(pamh, result));
-        goto cleanup;
-    }
-
     //TODO use a pam argument for full path kwalletd
     char *args[] = {"/opt/kde4/bin/kwalletd", "--pam-login", NULL};
     execve(args[0], args, pam_getenvlist(pamh));
@@ -345,6 +339,12 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, cons
 
     if (result != PAM_SUCCESS) {
         pam_syslog(pamh, LOG_INFO, "pam_kwallet: open_session called without kwallet_key");
+        return PAM_IGNORE;
+    }
+
+    result = set_env(pamh, "PAM_KWALLET_LOGIN", "1");
+    if (result != PAM_SUCCESS) {
+        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to set PAM_KWALLET_LOGIN env, %s", pam_strerror(pamh, result));
         return PAM_IGNORE;
     }
 
