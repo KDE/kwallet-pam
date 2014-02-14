@@ -154,7 +154,7 @@ cleanup:
 
 PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
-    printf("pam_sm_authenticate\n");
+    pam_syslog(pamh, LOG_INFO, "pam_sm_authenticate\n");
 
     int result;
 
@@ -264,7 +264,6 @@ static int better_write(int fd, const char *buffer, int len)
     size_t result;
     while(writtenBytes < len) {
         result = write(fd, buffer + writtenBytes, len - writtenBytes);
-        printf("Result write %d\n", result);
         if (result < 0) {
             if (errno != EAGAIN && errno != EINTR) {
                 return -1;
@@ -304,13 +303,13 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
     int len;
     len = strlen(local.sun_path) + sizeof(local.sun_family);
     if (bind(envSocket, (struct sockaddr *)&local, len) == -1) {
-        fprintf(stdout, "kwalletd: Couldn't bind to local file\n");
-        return /*-1*/;
+        pam_syslog(pamh, LOG_INFO, "kwalletd: Couldn't bind to local file\n");
+        return;
     }
 
     if (listen(envSocket, 5) == -1) {
-        fprintf(stdout, "kwalletd: Couldn't listen in socket\n");
-        return /*-1*/;
+        pam_syslog(pamh, LOG_INFO, "kwalletd: Couldn't listen in socket\n");
+        return;
     }
 
     pid_t pid;
@@ -341,7 +340,7 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
 
 PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
-    printf("pam_sm_open_session\n");
+    pam_syslog(pamh, LOG_INFO, "pam_sm_open_session\n");
 
     int result;
 
@@ -382,20 +381,20 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, cons
 
 PAM_EXTERN int pam_sm_close_session(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
-    printf("pam_sm_close_session\n");
+    pam_syslog(pamh, LOG_INFO, "pam_sm_close_session\n");
     return PAM_SUCCESS;
 }
 
 PAM_EXTERN int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
-    printf("pam_sm_setsecred\n");
+    pam_syslog(pamh, LOG_INFO, "pam_sm_setsecred\n");
     return PAM_SUCCESS;
 }
 
 
 PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
-    printf("pam_sm_chauthtok\n");
+    pam_syslog(pamh, LOG_INFO, "pam_sm_chauthtok\n");
     return PAM_SUCCESS;
 }
 
