@@ -32,6 +32,9 @@
 #include <security/pam_modules.h>
 #include <security/pam_ext.h>
 #include <security/_pam_types.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 #define KWALLET_PAM_KEYSIZE 56
 #define KWALLET_PAM_SALTSIZE 56
@@ -221,25 +224,20 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     return PAM_SUCCESS;
 }
 
-static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toWalletPipe[2])
+static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toWalletPipe[2], int envSocket)
 {
-
-    //Make our reading end of the pipe "point" to stdin
-    if (dup2(toWalletPipe[0], 0) < 0) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to dup pipe into stdin");
-        goto cleanup;
-    }
-
     int x = 2;
-    //Clean all possible open FD, execve doesn't do that for us
+    //Close fd that are not of interest of kwallet
     for (; x < 64; ++x) {
-        close (x);
+        if (x != toWalletPipe[0] && x != envSocket) {
+            close (x);
+        }
     }
 
-    //We don't need these anymore
-    close (toWalletPipe[0]);
+    //This is the side of the pipe PAM will send the hash to
     close (toWalletPipe[1]);
 
+    //Change to the user in case we are not it yet
     if (setgid (userInfo->pw_gid) < 0 || setuid (userInfo->pw_uid) < 0 ||
         setegid (userInfo->pw_gid) < 0 || seteuid (userInfo->pw_uid) < 0) {
         pam_syslog(pamh, LOG_ERR, "pam_kwallet: could not set gid/uid/euid/egit for kwalletd");
@@ -247,7 +245,12 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
     }
 
     //TODO use a pam argument for full path kwalletd
-    char *args[] = {"/opt/kde4/bin/kwalletd", "--pam-login", NULL};
+    char pipeInt[2];
+    sprintf(pipeInt, "%d", toWalletPipe[0]);
+    char sockIn[2];
+    sprintf(sockIn, "%d", envSocket);
+
+    char *args[] = {"/opt/kde4/bin/kwalletd", "--pam-login", pipeInt, sockIn, NULL};
     execve(args[0], args, pam_getenvlist(pamh));
     pam_syslog(pamh, LOG_ERR, "pam_kwallet: could not execute kwalletd");
 
@@ -272,6 +275,7 @@ static int better_write(int fd, const char *buffer, int len)
 
     return 0;
 }
+
 static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const char *kwalletKey)
 {
     //Just in case we get broken pipe, do not break the pam process..
@@ -281,9 +285,32 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
     sigPipe.sa_handler = SIG_IGN;
     sigaction (SIGPIPE, &sigPipe, &oldSigPipe);
 
-    int toWalletPipe[2] = { -1, -1 };
+    int toWalletPipe[3] = { -1, -1};
     if (pipe(toWalletPipe) < 0) {
         pam_syslog(pamh, LOG_ERR, "pam_kwallet: Couldn't create pipes");
+    }
+
+    int envSocket;
+    if ((envSocket = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+        perror("socket");
+        exit(1);
+    }
+
+    struct sockaddr_un local;
+    local.sun_family = AF_UNIX;
+    strcpy(local.sun_path, "/tmp/test.socket");
+    unlink(local.sun_path);//Just in case it exists from a previous login
+
+    int len;
+    len = strlen(local.sun_path) + sizeof(local.sun_family);
+    if (bind(envSocket, (struct sockaddr *)&local, len) == -1) {
+        fprintf(stdout, "kwalletd: Couldn't bind to local file\n");
+        return /*-1*/;
+    }
+
+    if (listen(envSocket, 5) == -1) {
+        fprintf(stdout, "kwalletd: Couldn't listen in socket\n");
+        return /*-1*/;
     }
 
     pid_t pid;
@@ -294,7 +321,7 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
 
     //Child fork, will contain kwalletd
     case 0:
-        execute_kwallet(pamh, userInfo, toWalletPipe);
+        execute_kwallet(pamh, userInfo, toWalletPipe, envSocket);
         /* Should never be reached */
         break;
 
