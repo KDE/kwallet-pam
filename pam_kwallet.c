@@ -198,7 +198,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     //even though we just set it, better check to be 100% sure
     result = pam_get_item(pamh, PAM_AUTHTOK, (const void**)&password);
     if (result != PAM_SUCCESS || !password) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Password is not there even though we set it",
+        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Password is not there even though we set it %s",
                    pam_strerror(pamh, result));
         return PAM_IGNORE;
     }
