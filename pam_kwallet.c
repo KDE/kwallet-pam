@@ -68,8 +68,7 @@ static int set_env(pam_handle_t *pamh, const char *name, const char *value)
         return -1;
     }
 
-    sprintf(pamEnv, "%s=%s", name, value);
-    printf("PAMENV %s\n", pamEnv);
+    sprintf (pamEnv, "%s=%s", name, value);
     int ret = pam_putenv(pamh, pamEnv);
     free(pamEnv);
 
@@ -426,7 +425,7 @@ static char* createNewSalt(const char *path)
 int kwallet_hash(const char *passphrase, const char *username, char *key)
 {
     if (!gcry_check_version("1.6.0")) {
-        printf("libcrypt version is too old \n");
+        fprintf(stderr, "libcrypt version is too old \n");
         return 1;
     }
     printf("libcrypt initialized\n");
@@ -447,8 +446,8 @@ int kwallet_hash(const char *passphrase, const char *username, char *key)
     gcry_error_t error;
     error = gcry_control(GCRYCTL_INIT_SECMEM, 32768, 0);
     if (error != 0) {
-        printf("Can't get secure memory: %d\n", error);
-        return;
+        fprintf(stderr, "Can't get secure memory: %d\n", error);
+        return 1;
     }
     gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
