@@ -155,6 +155,10 @@ cleanup:
 PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
     pam_syslog(pamh, LOG_INFO, "pam_sm_authenticate\n");
+    if (get_env(pamh, "PAM_KWALLET_LOGIN") != NULL) {
+        pam_syslog(pamh, LOG_INFO, "pam_kwallet: we were already executed");
+        return PAM_SUCCESS;
+    }
 
     int result;
 
@@ -341,6 +345,11 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
 PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
     pam_syslog(pamh, LOG_INFO, "pam_sm_open_session\n");
+
+    if (get_env(pamh, "PAM_KWALLET_LOGIN") != NULL) {
+        pam_syslog(pamh, LOG_INFO, "pam_kwallet: we were already executed");
+        return PAM_SUCCESS;
+    }
 
     int result;
 
