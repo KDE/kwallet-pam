@@ -40,6 +40,42 @@
 #define KWALLET_PAM_SALTSIZE 56
 #define KWALLET_PAM_ITERATIONS 50000
 
+const static char *kdehome = NULL;
+const static char *kwalletd = NULL;
+const static char *socketPath = NULL;
+static int argumentsParsed = -1;
+
+int kwallet_hash(const char *passphrase, const char *homedir, char *key);
+
+static void parseArguments(int argc, const char **argv)
+{
+    //If already parsed
+    if (argumentsParsed != -1) {
+        return;
+    }
+
+    int x = 1;
+    for (;x < argc; ++x) {
+        if (strstr(argv[x], "kdehome=") != NULL) {
+            kdehome = argv[x] + 8;
+        } else if (strstr(argv[x], "kwalletd=") != NULL) {
+            kwalletd = argv[x] + 9;
+        } else if (strstr(argv[x], "socketPath=") != NULL) {
+            socketPath= argv[x] + 11;
+        }
+    }
+
+    if (kdehome == NULL) {
+        kdehome = ".kde";
+    }
+    if (kwalletd == NULL) {
+        kwalletd = "/usr/bin/kwalletd";
+    }
+    if (socketPath == NULL) {
+        socketPath = "/tmp/";
+    }
+}
+
 static const char* get_env(pam_handle_t *ph, const char *name)
 {
     const char *env = pam_getenv (ph, name);
@@ -159,6 +195,8 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
         return PAM_SUCCESS;
     }
 
+    parseArguments(argc, argv);
+
     int result;
 
     //Fetch the user, needed to get user information
@@ -207,7 +245,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     }
 
     char *key = malloc(sizeof(char) * KWALLET_PAM_KEYSIZE);
-    kwallet_hash(password, username, key);
+    kwallet_hash(password, userInfo->pw_dir, key);
 
     result = pam_set_data(pamh, "kwallet_key", key, NULL);
     if (result != PAM_SUCCESS) {
@@ -253,7 +291,7 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
     char sockIn[2];
     sprintf(sockIn, "%d", envSocket);
 
-    char *args[] = {"/opt/kde4/bin/kwalletd", "--pam-login", pipeInt, sockIn, NULL};
+    char *args[] = {strdup(kwalletd), "--pam-login", pipeInt, sockIn, NULL};
     execve(args[0], args, pam_getenvlist(pamh));
     pam_syslog(pamh, LOG_ERR, "pam_kwallet: could not execute kwalletd");
 
@@ -355,6 +393,8 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, cons
         return PAM_SUCCESS;
     }
 
+    parseArguments(argc, argv);
+
     int result;
 
      //Fetch the user, needed to get user information
@@ -422,17 +462,20 @@ static char* createNewSalt(const char *path)
 
     return salt;
 }
-int kwallet_hash(const char *passphrase, const char *username, char *key)
+int kwallet_hash(const char *passphrase, const char *homedir, char *key)
 {
     if (!gcry_check_version("1.6.0")) {
         fprintf(stderr, "libcrypt version is too old \n");
         return 1;
     }
-    printf("libcrypt initialized\n");
+    fprintf(stderr, "libcrypt initialized\n");
+
+    char *fixpath = "share/apps/kwallet/kdewallet.salt";
+    char *path = (char*) malloc(strlen(homedir) + strlen(kdehome) + strlen(fixpath) + 3);//3 == / and \0
+    sprintf(path, "%s/%s/%s", homedir, kdehome, fixpath);
 
     struct stat info;
     char *salt = NULL;
-    char *path = "/home/afiestas/.kde4/share/apps/kwallet/kdewallet.salt";
     if (stat(path, &info) != 0 || info.st_size == 0) {
         salt = createNewSalt(path);
     } else {
