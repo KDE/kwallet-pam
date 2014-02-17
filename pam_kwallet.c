@@ -265,7 +265,7 @@ cleanup:
 static int better_write(int fd, const char *buffer, int len)
 {
     size_t writtenBytes = 0;
-    size_t result;
+    int result;
     while(writtenBytes < len) {
         result = write(fd, buffer + writtenBytes, len - writtenBytes);
         if (result < 0) {
@@ -313,6 +313,11 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
 
     if (listen(envSocket, 5) == -1) {
         pam_syslog(pamh, LOG_INFO, "kwalletd: Couldn't listen in socket\n");
+        return;
+    }
+
+    if (chown("/tmp/test.socket", userInfo->pw_uid, userInfo->pw_gid) == -1) {
+        pam_syslog(pamh, LOG_INFO, "Couldn't change ownership of the socket");
         return;
     }
 
