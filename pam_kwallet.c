@@ -464,7 +464,7 @@ static char* createNewSalt(const char *path)
 }
 int kwallet_hash(const char *passphrase, const char *homedir, char *key)
 {
-    if (!gcry_check_version("1.6.0")) {
+    if (!gcry_check_version("1.5.0")) {
         fprintf(stderr, "libcrypt version is too old \n");
         return 1;
     }
