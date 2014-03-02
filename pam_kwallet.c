@@ -287,9 +287,9 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
     }
 
     //TODO use a pam argument for full path kwalletd
-    char pipeInt[2];
+    char pipeInt[4];
     sprintf(pipeInt, "%d", toWalletPipe[0]);
-    char sockIn[2];
+    char sockIn[4];
     sprintf(sockIn, "%d", envSocket);
 
     char *args[] = {strdup(kwalletd), "--pam-login", pipeInt, sockIn, NULL};
