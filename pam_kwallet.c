@@ -333,8 +333,8 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
 
     int envSocket;
     if ((envSocket = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
-        perror("socket");
-        exit(1);
+        pam_syslog(pamh, LOG_ERR, "pam_kwallet: couldn't create socket");
+        return;
     }
 
     struct sockaddr_un local;
