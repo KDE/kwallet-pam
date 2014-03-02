@@ -54,7 +54,7 @@ static void parseArguments(int argc, const char **argv)
         return;
     }
 
-    int x = 1;
+    int x = 0;
     for (;x < argc; ++x) {
         if (strstr(argv[x], "kdehome=") != NULL) {
             kdehome = argv[x] + 8;
