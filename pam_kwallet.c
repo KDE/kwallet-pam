@@ -326,7 +326,7 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
     sigPipe.sa_handler = SIG_IGN;
     sigaction (SIGPIPE, &sigPipe, &oldSigPipe);
 
-    int toWalletPipe[3] = { -1, -1};
+    int toWalletPipe[2] = { -1, -1};
     if (pipe(toWalletPipe) < 0) {
         pam_syslog(pamh, LOG_ERR, "pam_kwallet: Couldn't create pipes");
     }
