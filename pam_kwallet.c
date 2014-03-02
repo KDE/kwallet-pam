@@ -267,6 +267,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
 
 static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toWalletPipe[2], int envSocket)
 {
+    //In the child pam_syslog does not work, using syslog directly
     int x = 2;
     //Close fd that are not of interest of kwallet
     for (; x < 64; ++x) {
@@ -281,7 +282,7 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
     //Change to the user in case we are not it yet
     if (setgid (userInfo->pw_gid) < 0 || setuid (userInfo->pw_uid) < 0 ||
         setegid (userInfo->pw_gid) < 0 || seteuid (userInfo->pw_uid) < 0) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: could not set gid/uid/euid/egit for kwalletd");
+        syslog(LOG_ERR, "pam_kwallet: could not set gid/uid/euid/egit for kwalletd");
         goto cleanup;
     }
 
@@ -293,7 +294,7 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
 
     char *args[] = {strdup(kwalletd), "--pam-login", pipeInt, sockIn, NULL};
     execve(args[0], args, pam_getenvlist(pamh));
-    pam_syslog(pamh, LOG_ERR, "pam_kwallet: could not execute kwalletd");
+    syslog(pamh, LOG_ERR, "pam_kwallet: could not execute kwalletd");
 
 cleanup:
     exit(EXIT_FAILURE);
