@@ -464,9 +464,44 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const c
     return PAM_SUCCESS;
 }
 
+int mkpath(char *path)
+{
+    struct stat sb;
+    char *slash;
+    int done = 0;
+
+    slash = path;
+
+    while (!done) {
+        slash += strspn(slash, "/");
+        slash += strcspn(slash, "/");
+
+        done = (*slash == '\0');
+        *slash = '\0';
+
+        if (stat(path, &sb)) {
+            if (errno != ENOENT || (mkdir(path, 0777) &&
+                errno != EEXIST)) {
+                return (-1);
+            }
+        } else if (!S_ISDIR(sb.st_mode)) {
+            return (-1);
+        }
+
+        *slash = '/';
+    }
+
+    return (0);
+}
+
 static char* createNewSalt(const char *path)
 {
-    unlink(path);
+    unlink(path);//in case the file already exists
+
+    char *dir = strdup(path);
+    dir[strlen(dir) - 14] = '\0';//remove kdewallet.salt
+    mkpath(dir);//create the path in case it does not exists
+    free(dir);
 
     char *salt = gcry_random_bytes(KWALLET_PAM_SALTSIZE, GCRY_STRONG_RANDOM);
     FILE *fd = fopen(path, "w");
