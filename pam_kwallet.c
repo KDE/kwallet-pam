@@ -338,12 +338,23 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
         return;
     }
 
+    int len = strlen(socketPath) + strlen(userInfo->pw_name) + 8;// 8 = .socket+null
+    char *fullSocket = (char*) malloc(len);
+    sprintf(fullSocket, "%s/%s%s", socketPath, userInfo->pw_name, ".socket");
+
+    int result = set_env(pamh, "PAM_KWALLET_LOGIN", strdup(fullSocket));
+    if (result != PAM_SUCCESS) {
+        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to set PAM_KWALLET_LOGIN env, %s", pam_strerror(pamh, result));
+        return;
+    }
+
     struct sockaddr_un local;
     local.sun_family = AF_UNIX;
-    strcpy(local.sun_path, "/tmp/test.socket");
+    strcpy(local.sun_path, fullSocket);
     unlink(local.sun_path);//Just in case it exists from a previous login
 
-    int len;
+    pam_syslog(pamh, LOG_INFO, "pam-kwallet: final socket path: %s", fullSocket);
+
     len = strlen(local.sun_path) + sizeof(local.sun_family);
     if (bind(envSocket, (struct sockaddr *)&local, len) == -1) {
         pam_syslog(pamh, LOG_INFO, "kwalletd: Couldn't bind to local file\n");
@@ -355,7 +366,7 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
         return;
     }
 
-    if (chown("/tmp/test.socket", userInfo->pw_uid, userInfo->pw_gid) == -1) {
+    if (chown(fullSocket, userInfo->pw_uid, userInfo->pw_gid) == -1) {
         pam_syslog(pamh, LOG_INFO, "Couldn't change ownership of the socket");
         return;
     }
@@ -427,12 +438,6 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, cons
     if (result != PAM_SUCCESS) {
         pam_syslog(pamh, LOG_INFO, "pam_kwallet: open_session called without kwallet_key");
         return PAM_SUCCESS;//We will wait for pam_sm_authenticate
-    }
-
-    result = set_env(pamh, "PAM_KWALLET_LOGIN", "1");
-    if (result != PAM_SUCCESS) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to set PAM_KWALLET_LOGIN env, %s", pam_strerror(pamh, result));
-        return PAM_IGNORE;
     }
 
     start_kwallet(pamh, userInfo, kwalletKey);
