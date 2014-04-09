@@ -254,11 +254,12 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
         return PAM_IGNORE;
     }
 
-    //At this point we are ready to go.
-    //We check if the session has started, if not we wait for open_session
-    if (!get_env(pamh, "KWALLET_SESSION_STARTED")) {
-        pam_syslog(pamh, LOG_INFO, "pam_kwallet: session not started, waiting for open_session");
-        return PAM_SUCCESS;
+    //if sm_open_session has already been called (but we did not have password), call it now
+    const char *session_bit;
+    result = pam_get_data(pamh, "sm_open_session", (const void **)&session_bit);
+    if (result == PAM_SUCCESS) {
+        pam_syslog(pamh, LOG_ERR, "pam_kwallet: open_session was called before us, calling it now");
+        return pam_sm_open_session(pamh, flags, argc, argv);
     }
 
     //TODO unlock kwallet that is already executed
@@ -397,6 +398,12 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, cons
     parseArguments(argc, argv);
 
     int result;
+    result = pam_set_data(pamh, "sm_open_session", "1", NULL);
+    if (result != PAM_SUCCESS) {
+        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to store sm_open_session: %s"
+            , pam_strerror(pamh, result));
+        return PAM_IGNORE;
+    }
 
      //Fetch the user, needed to get user information
     const char *username;
@@ -419,7 +426,7 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, cons
 
     if (result != PAM_SUCCESS) {
         pam_syslog(pamh, LOG_INFO, "pam_kwallet: open_session called without kwallet_key");
-        return PAM_IGNORE;
+        return PAM_SUCCESS;//We will wait for pam_sm_authenticate
     }
 
     result = set_env(pamh, "PAM_KWALLET_LOGIN", "1");
