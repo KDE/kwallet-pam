@@ -45,7 +45,7 @@ const static char *kwalletd = NULL;
 const static char *socketPath = NULL;
 static int argumentsParsed = -1;
 
-int kwallet_hash(const char *passphrase, const char *homedir, char *key);
+int kwallet_hash(const char *passphrase, struct passwd *userInfo, char *key);
 
 static void parseArguments(int argc, const char **argv)
 {
@@ -245,7 +245,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     }
 
     char *key = malloc(sizeof(char) * KWALLET_PAM_KEYSIZE);
-    kwallet_hash(password, userInfo->pw_dir, key);
+    kwallet_hash(password, userInfo, key);
 
     result = pam_set_data(pamh, "kwallet_key", key, NULL);
     if (result != PAM_SUCCESS) {
@@ -295,7 +295,7 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
 
     char *args[] = {strdup(kwalletd), "--pam-login", pipeInt, sockIn, NULL};
     execve(args[0], args, pam_getenvlist(pamh));
-    syslog(pamh, LOG_ERR, "pam_kwallet: could not execute kwalletd");
+    syslog(LOG_ERR, "pam_kwallet: could not execute kwalletd");
 
 cleanup:
     exit(EXIT_FAILURE);
@@ -464,7 +464,7 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const c
     return PAM_SUCCESS;
 }
 
-int mkpath(char *path)
+int mkpath(char *path, struct passwd *userInfo)
 {
     struct stat sb;
     char *slash;
@@ -483,6 +483,10 @@ int mkpath(char *path)
             if (errno != ENOENT || (mkdir(path, 0777) &&
                 errno != EEXIST)) {
                 return (-1);
+            } else {
+                if (chown(path, userInfo->pw_uid, userInfo->pw_gid) == -1) {
+                    syslog(LOG_INFO, "Couldn't change ownership of: %s", path);
+                }
             }
         } else if (!S_ISDIR(sb.st_mode)) {
             return (-1);
@@ -494,13 +498,13 @@ int mkpath(char *path)
     return (0);
 }
 
-static char* createNewSalt(const char *path)
+static char* createNewSalt(const char *path, struct passwd *userInfo)
 {
     unlink(path);//in case the file already exists
 
     char *dir = strdup(path);
     dir[strlen(dir) - 14] = '\0';//remove kdewallet.salt
-    mkpath(dir);//create the path in case it does not exists
+    mkpath(dir, userInfo);//create the path in case it does not exists
     free(dir);
 
     char *salt = gcry_random_bytes(KWALLET_PAM_SALTSIZE, GCRY_STRONG_RANDOM);
@@ -508,9 +512,13 @@ static char* createNewSalt(const char *path)
     fwrite(salt, KWALLET_PAM_SALTSIZE, 1, fd);
     fclose(fd);
 
+    if (chown(path, userInfo->pw_uid, userInfo->pw_gid) == -1) {
+        syslog(LOG_INFO, "Couldn't change ownership of the socket");
+    }
+
     return salt;
 }
-int kwallet_hash(const char *passphrase, const char *homedir, char *key)
+int kwallet_hash(const char *passphrase, struct passwd *userInfo, char *key)
 {
     if (!gcry_check_version("1.5.0")) {
         fprintf(stderr, "libcrypt version is too old \n");
@@ -519,13 +527,13 @@ int kwallet_hash(const char *passphrase, const char *homedir, char *key)
     fprintf(stderr, "libcrypt initialized\n");
 
     char *fixpath = "share/apps/kwallet/kdewallet.salt";
-    char *path = (char*) malloc(strlen(homedir) + strlen(kdehome) + strlen(fixpath) + 3);//3 == / and \0
-    sprintf(path, "%s/%s/%s", homedir, kdehome, fixpath);
+    char *path = (char*) malloc(strlen(userInfo->pw_dir) + strlen(kdehome) + strlen(fixpath) + 3);//3 == / and \0
+    sprintf(path, "%s/%s/%s", userInfo->pw_dir, kdehome, fixpath);
 
     struct stat info;
     char *salt = NULL;
     if (stat(path, &info) != 0 || info.st_size == 0) {
-        salt = createNewSalt(path);
+        salt = createNewSalt(path, userInfo);
     } else {
         FILE *fd = fopen(path, "r");
         salt = (char*) malloc(sizeof(char) * KWALLET_PAM_SALTSIZE);
