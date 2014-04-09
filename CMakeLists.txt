@@ -22,3 +22,5 @@ target_link_libraries (pam_kwallet
    ${PAM_LIBRARIES}
    ${LIBGCRYPT_LIBRARIES}
 )
+
+install(TARGETS pam_kwallet DESTINATION /lib/${CMAKE_LIBRARY_ARCHITECTURE}/security)
