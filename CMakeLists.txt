@@ -23,4 +23,4 @@ target_link_libraries (pam_kwallet
    ${LIBGCRYPT_LIBRARIES}
 )
 
-install(TARGETS pam_kwallet DESTINATION /lib/${CMAKE_LIBRARY_ARCHITECTURE}/security)
+install(TARGETS pam_kwallet DESTINATION /lib${LIB_SUFFIX}/${CMAKE_LIBRARY_ARCHITECTURE}/security)
