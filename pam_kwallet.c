@@ -338,7 +338,7 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
         return;
     }
 
-    int len = strlen(socketPath) + strlen(userInfo->pw_name) + 8;// 8 = .socket+null
+    int len = strlen(socketPath) + strlen(userInfo->pw_name) + 9;// 9 = slash+.socket+null
     char *fullSocket = (char*) malloc(len);
     sprintf(fullSocket, "%s/%s%s", socketPath, userInfo->pw_name, ".socket");
 
