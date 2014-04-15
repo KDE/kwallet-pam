@@ -447,20 +447,20 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, cons
 
 PAM_EXTERN int pam_sm_close_session(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
-    pam_syslog(pamh, LOG_INFO, "pam_sm_close_session\n");
+    pam_syslog(pamh, LOG_INFO, "pam_sm_close_session");
     return PAM_SUCCESS;
 }
 
 PAM_EXTERN int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
-    pam_syslog(pamh, LOG_INFO, "pam_sm_setsecred\n");
+    pam_syslog(pamh, LOG_INFO, "pam_sm_setcred");
     return PAM_SUCCESS;
 }
 
 
 PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
-    pam_syslog(pamh, LOG_INFO, "pam_sm_chauthtok\n");
+    pam_syslog(pamh, LOG_INFO, "pam_sm_chauthtok");
     return PAM_SUCCESS;
 }
 
