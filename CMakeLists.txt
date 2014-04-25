@@ -1,10 +1,11 @@
 project(pam_kwallet)
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.8)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules" )
 
 find_package(PAM REQUIRED)
 find_package(LibGcrypt 1.5.0 REQUIRED)
+include(GNUInstallDirs)
 
 include_directories (
    ${PAM_INCLUDE_DIR}
@@ -23,4 +24,4 @@ target_link_libraries (pam_kwallet
    ${LIBGCRYPT_LIBRARIES}
 )
 
-install(TARGETS pam_kwallet DESTINATION /lib${LIB_SUFFIX}/${CMAKE_LIBRARY_ARCHITECTURE}/security)
+install(TARGETS pam_kwallet DESTINATION /${CMAKE_INSTALL_LIBDIR}/security)
