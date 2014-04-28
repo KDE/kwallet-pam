@@ -524,7 +524,7 @@ static char* createNewSalt(const char *path, struct passwd *userInfo)
     fclose(fd);
 
     if (chown(path, userInfo->pw_uid, userInfo->pw_gid) == -1) {
-        syslog(LOG_INFO, "Couldn't change ownership of the socket");
+        syslog(LOG_ERR, "Couldn't change ownership of the created salt file");
     }
 
     return salt;
@@ -532,10 +532,9 @@ static char* createNewSalt(const char *path, struct passwd *userInfo)
 int kwallet_hash(const char *passphrase, struct passwd *userInfo, char *key)
 {
     if (!gcry_check_version("1.5.0")) {
-        fprintf(stderr, "libcrypt version is too old \n");
+        syslog(LOG_ERR, "kwalletd: libcrypt version is too old");
         return 1;
     }
-    fprintf(stderr, "libcrypt initialized\n");
 
     char *fixpath = "share/apps/kwallet/kdewallet.salt";
     char *path = (char*) malloc(strlen(userInfo->pw_dir) + strlen(kdehome) + strlen(fixpath) + 3);//3 == / and \0
@@ -564,9 +563,10 @@ int kwallet_hash(const char *passphrase, struct passwd *userInfo, char *key)
     gcry_error_t error;
     error = gcry_control(GCRYCTL_INIT_SECMEM, 32768, 0);
     if (error != 0) {
-        fprintf(stderr, "Can't get secure memory: %d\n", error);
+        syslog(LOG_ERR, "kwalletd: Can't get secure memory: %d", error);
         return 1;
     }
+
     gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
     error = gcry_kdf_derive(passphrase, strlen(passphrase),
