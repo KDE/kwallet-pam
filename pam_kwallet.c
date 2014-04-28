@@ -510,6 +510,13 @@ static char* createNewSalt(const char *path, struct passwd *userInfo)
 
     char *salt = gcry_random_bytes(KWALLET_PAM_SALTSIZE, GCRY_STRONG_RANDOM);
     FILE *fd = fopen(path, "w");
+
+    //If the file can't be created
+    if (fd == NULL) {
+        syslog(LOG_ERR, "Couldn't open file: %s because: %d-%s", path, errno, strerror(errno));
+        return NULL;
+    }
+
     fwrite(salt, KWALLET_PAM_SALTSIZE, 1, fd);
     fclose(fd);
 
