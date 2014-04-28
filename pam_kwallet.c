@@ -547,10 +547,18 @@ int kwallet_hash(const char *passphrase, struct passwd *userInfo, char *key)
         salt = createNewSalt(path, userInfo);
     } else {
         FILE *fd = fopen(path, "r");
+        if (fd == NULL) {
+            syslog(LOG_ERR, "Couldn't open file: %s because: %d-%s", path, errno, strerror(errno));
+            return 1;
+        }
         salt = (char*) malloc(sizeof(char) * KWALLET_PAM_SALTSIZE);
         memset(salt, '\0', KWALLET_PAM_SALTSIZE);
         fread(salt, KWALLET_PAM_SALTSIZE, 1, fd);
         fclose(fd);
+    }
+    if (salt == NULL) {
+        syslog(LOG_ERR, "kwalletd: Couldn't create or read the salt file");
+        return 1;
     }
 
     gcry_error_t error;
