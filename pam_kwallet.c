@@ -482,6 +482,7 @@ int mkpath(char *path, struct passwd *userInfo)
         if (stat(path, &sb)) {
             if (errno != ENOENT || (mkdir(path, 0777) &&
                 errno != EEXIST)) {
+                syslog(LOG_ERR, "Couldn't create directory: %s because: %d-%s", path, errno, strerror(errno));
                 return (-1);
             } else {
                 if (chown(path, userInfo->pw_uid, userInfo->pw_gid) == -1) {
