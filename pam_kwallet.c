@@ -342,7 +342,7 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
     char *fullSocket = (char*) malloc(len);
     sprintf(fullSocket, "%s/%s%s", socketPath, userInfo->pw_name, ".socket");
 
-    int result = set_env(pamh, "PAM_KWALLET_LOGIN", strdup(fullSocket));
+    int result = set_env(pamh, "PAM_KWALLET_LOGIN", fullSocket);
     if (result != PAM_SUCCESS) {
         pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to set PAM_KWALLET_LOGIN env, %s", pam_strerror(pamh, result));
         return;
