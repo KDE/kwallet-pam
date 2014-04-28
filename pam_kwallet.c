@@ -245,7 +245,10 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     }
 
     char *key = malloc(sizeof(char) * KWALLET_PAM_KEYSIZE);
-    kwallet_hash(password, userInfo, key);
+    if (kwallet_hash(password, userInfo, key) != 0) {
+        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Fail into creating the hash");
+        return PAM_IGNORE;
+    }
 
     result = pam_set_data(pamh, "kwallet_key", key, NULL);
     if (result != PAM_SUCCESS) {
