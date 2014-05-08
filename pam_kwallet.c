@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <grp.h>
 
 #define PAM_SM_PASSWORD
 #define PAM_SM_SESSION
@@ -282,6 +283,15 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
 
     //This is the side of the pipe PAM will send the hash to
     close (toWalletPipe[1]);
+
+    /* When dropping privileges from root, the `setgroups` call will
+    * remove any extraneous groups. If we don't call this, then
+    * even though our uid has dropped, we may still have groups
+    * that enable us to do super-user things. This will fail if we
+    * aren't root, so don't bother checking the return value, this
+    * is just done as an optimistic privilege dropping function.
+    */
+    setgroups(0, NULL);
 
     //Change to the user in case we are not it yet
     if (setgid (userInfo->pw_gid) < 0 || setuid (userInfo->pw_uid) < 0 ||
