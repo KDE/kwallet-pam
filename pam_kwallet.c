@@ -83,7 +83,7 @@ static void parseArguments(int argc, const char **argv)
 #endif
 
     if (socketPath == NULL) {
-        socketPath = "/tmp/";
+        socketPath = "/tmp";
     }
 }
 
