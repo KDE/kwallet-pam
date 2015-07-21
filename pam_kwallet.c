@@ -65,7 +65,6 @@ static void parseArguments(int argc, const char **argv)
             socketPath= argv[x] + 11;
         }
     }
-
 #ifdef KWALLET5
     if (kdehome == NULL) {
         kdehome = ".local";
@@ -318,7 +317,7 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
 
     char *args[] = {strdup(kwalletd), "--pam-login", pipeInt, sockIn, NULL};
     execve(args[0], args, pam_getenvlist(pamh));
-    syslog(LOG_ERR, "pam_kwallet: could not execute kwalletd");
+    syslog(LOG_ERR, "pam_kwallet: could not execute kwalletd from %s", kwalletd);
 
 cleanup:
     exit(EXIT_FAILURE);
