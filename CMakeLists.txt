@@ -13,15 +13,22 @@ include_directories (
    ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+set(library_name "pam_kwallet")
+
+if ("${KWALLET5}" STREQUAL "1")
+    add_definitions(-DKWALLET5)
+    set(library_name "pam_kwallet5")
+endif()
+
 set(pam_kwallet_SRCS
    pam_kwallet.c
 )
 
-add_library (pam_kwallet SHARED ${pam_kwallet_SRCS})
-set_target_properties (pam_kwallet PROPERTIES PREFIX "")
-target_link_libraries (pam_kwallet
+add_library (${library_name} SHARED ${pam_kwallet_SRCS})
+set_target_properties (${library_name} PROPERTIES PREFIX "")
+target_link_libraries (${library_name}
    ${PAM_LIBRARIES}
    ${LIBGCRYPT_LIBRARIES}
 )
 
-install(TARGETS pam_kwallet DESTINATION /${CMAKE_INSTALL_LIBDIR}/security)
+install(TARGETS ${library_name} DESTINATION /${CMAKE_INSTALL_LIBDIR}/security)

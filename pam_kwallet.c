@@ -66,12 +66,22 @@ static void parseArguments(int argc, const char **argv)
         }
     }
 
+#ifdef KWALLET5
+    if (kdehome == NULL) {
+        kdehome = ".local";
+    }
+    if (kwalletd == NULL) {
+        kwalletd = "/usr/bin/kwalletd5";
+    }
+#else
     if (kdehome == NULL) {
         kdehome = ".kde";
     }
     if (kwalletd == NULL) {
         kwalletd = "/usr/bin/kwalletd";
     }
+#endif
+
     if (socketPath == NULL) {
         socketPath = "/tmp/";
     }
@@ -546,7 +556,11 @@ int kwallet_hash(const char *passphrase, struct passwd *userInfo, char *key)
         return 1;
     }
 
+#ifdef KWALLET5
+    char *fixpath = "kwalletd/kdewallet.salt";
+#else
     char *fixpath = "share/apps/kwallet/kdewallet.salt";
+#endif
     char *path = (char*) malloc(strlen(userInfo->pw_dir) + strlen(kdehome) + strlen(fixpath) + 3);//3 == / and \0
     sprintf(path, "%s/%s/%s", userInfo->pw_dir, kdehome, fixpath);
 
