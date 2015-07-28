@@ -367,9 +367,15 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
         return;
     }
 
-    int len = strlen(socketPath) + strlen(userInfo->pw_name) + 9;// 9 = slash+.socket+null
+#ifdef KWALLET5
+    const char *socketPrefix = "kwallet5_";
+#else
+    const char *socketPrefix = "kwallet_";
+#endif
+
+    int len = strlen(socketPath) + strlen(userInfo->pw_name) + strlen(socketPrefix) + 9;// 9 = slash+.socket+null
     char *fullSocket = (char*) malloc(len);
-    sprintf(fullSocket, "%s/%s%s", socketPath, userInfo->pw_name, ".socket");
+    sprintf(fullSocket, "%s/%s%s%s", socketPath, socketPrefix, userInfo->pw_name, ".socket");
 
     int result = set_env(pamh, envVar, fullSocket);
     if (result != PAM_SUCCESS) {
