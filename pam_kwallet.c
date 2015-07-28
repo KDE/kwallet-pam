@@ -44,6 +44,7 @@
 const static char *kdehome = NULL;
 const static char *kwalletd = NULL;
 const static char *socketPath = NULL;
+const static char *envVar = NULL;
 static int argumentsParsed = -1;
 
 int kwallet_hash(const char *passphrase, struct passwd *userInfo, char *key);
@@ -72,12 +73,18 @@ static void parseArguments(int argc, const char **argv)
     if (kwalletd == NULL) {
         kwalletd = "/usr/bin/kwalletd5";
     }
+    if (envVar == NULL) {
+        envVar = "PAM_KWALLET5_LOGIN";
+    }
 #else
     if (kdehome == NULL) {
         kdehome = ".kde";
     }
     if (kwalletd == NULL) {
         kwalletd = "/usr/bin/kwalletd";
+    }
+    if (envVar == NULL) {
+        envVar = "PAM_KWALLET_LOGIN";
     }
 #endif
 
@@ -200,7 +207,7 @@ cleanup:
 PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
     pam_syslog(pamh, LOG_INFO, "pam_sm_authenticate\n");
-    if (get_env(pamh, "PAM_KWALLET_LOGIN") != NULL) {
+    if (get_env(pamh, envVar) != NULL) {
         pam_syslog(pamh, LOG_INFO, "pam_kwallet: we were already executed");
         return PAM_SUCCESS;
     }
@@ -364,9 +371,9 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
     char *fullSocket = (char*) malloc(len);
     sprintf(fullSocket, "%s/%s%s", socketPath, userInfo->pw_name, ".socket");
 
-    int result = set_env(pamh, "PAM_KWALLET_LOGIN", fullSocket);
+    int result = set_env(pamh, envVar, fullSocket);
     if (result != PAM_SUCCESS) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to set PAM_KWALLET_LOGIN env, %s", pam_strerror(pamh, result));
+        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to set %s env, %s", envVar, pam_strerror(pamh, result));
         return;
     }
 
@@ -423,7 +430,7 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, cons
 {
     pam_syslog(pamh, LOG_INFO, "pam_sm_open_session\n");
 
-    if (get_env(pamh, "PAM_KWALLET_LOGIN") != NULL) {
+    if (get_env(pamh, envVar) != NULL) {
         pam_syslog(pamh, LOG_INFO, "pam_kwallet: we were already executed");
         return PAM_SUCCESS;
     }
