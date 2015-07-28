@@ -68,7 +68,7 @@ static void parseArguments(int argc, const char **argv)
     }
 #ifdef KWALLET5
     if (kdehome == NULL) {
-        kdehome = ".local";
+        kdehome = ".local/share";
     }
     if (kwalletd == NULL) {
         kwalletd = "/usr/bin/kwalletd5";
