@@ -45,6 +45,7 @@ const static char *kdehome = NULL;
 const static char *kwalletd = NULL;
 const static char *socketPath = NULL;
 const static char *envVar = NULL;
+const static char *kwalletPamDataKey = NULL;
 static int argumentsParsed = -1;
 
 int kwallet_hash(const char *passphrase, struct passwd *userInfo, char *key);
@@ -76,6 +77,9 @@ static void parseArguments(int argc, const char **argv)
     if (envVar == NULL) {
         envVar = "PAM_KWALLET5_LOGIN";
     }
+    if (kwalletPamDataKey == NULL) {
+        kwalletPamDataKey = "kwallet5_key";
+    }
 #else
     if (kdehome == NULL) {
         kdehome = ".kde";
@@ -85,6 +89,9 @@ static void parseArguments(int argc, const char **argv)
     }
     if (envVar == NULL) {
         envVar = "PAM_KWALLET_LOGIN";
+    }
+    if (kwalletPamDataKey == NULL) {
+        kwalletPamDataKey = "kwallet_key";
     }
 #endif
 
@@ -267,7 +274,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
         return PAM_IGNORE;
     }
 
-    result = pam_set_data(pamh, "kwallet_key", key, NULL);
+    result = pam_set_data(pamh, kwalletPamDataKey, key, NULL);
     if (result != PAM_SUCCESS) {
         pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to store the hashed password: %s"
             , pam_strerror(pamh, result));
@@ -468,10 +475,10 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, cons
     }
 
     const char *kwalletKey;
-    result = pam_get_data(pamh, "kwallet_key", (const void **)&kwalletKey);
+    result = pam_get_data(pamh, kwalletPamDataKey, (const void **)&kwalletKey);
 
     if (result != PAM_SUCCESS) {
-        pam_syslog(pamh, LOG_INFO, "pam_kwallet: open_session called without kwallet_key");
+        pam_syslog(pamh, LOG_INFO, "pam_kwallet: open_session called without %s", kwalletPamDataKey);
         return PAM_SUCCESS;//We will wait for pam_sm_authenticate
     }
 
