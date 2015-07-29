@@ -44,8 +44,14 @@
 const static char *kdehome = NULL;
 const static char *kwalletd = NULL;
 const static char *socketPath = NULL;
-const static char *envVar = NULL;
 const static char *kwalletPamDataKey = NULL;
+
+#ifdef KWALLET5
+const static char *envVar = "PAM_KWALLET5_LOGIN";
+#else
+const static char *envVar = "PAM_KWALLET_LOGIN";
+#endif
+
 static int argumentsParsed = -1;
 
 int kwallet_hash(const char *passphrase, struct passwd *userInfo, char *key);
@@ -74,9 +80,6 @@ static void parseArguments(int argc, const char **argv)
     if (kwalletd == NULL) {
         kwalletd = "/usr/bin/kwalletd5";
     }
-    if (envVar == NULL) {
-        envVar = "PAM_KWALLET5_LOGIN";
-    }
     if (kwalletPamDataKey == NULL) {
         kwalletPamDataKey = "kwallet5_key";
     }
@@ -86,9 +89,6 @@ static void parseArguments(int argc, const char **argv)
     }
     if (kwalletd == NULL) {
         kwalletd = "/usr/bin/kwalletd";
-    }
-    if (envVar == NULL) {
-        envVar = "PAM_KWALLET_LOGIN";
     }
     if (kwalletPamDataKey == NULL) {
         kwalletPamDataKey = "kwallet_key";
