@@ -13,11 +13,12 @@ include_directories (
    ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-set(library_name "pam_kwallet")
+add_definitions(-DKWALLET5)
+set(library_name "pam_kwallet5")
 
-if ("${KWALLET5}" STREQUAL "1")
-    add_definitions(-DKWALLET5)
-    set(library_name "pam_kwallet5")
+if ("${KWALLET4}" STREQUAL "1")
+    remove_definitions(-DKWALLET5)
+    set(library_name "pam_kwallet")
 endif()
 
 set(pam_kwallet_SRCS
