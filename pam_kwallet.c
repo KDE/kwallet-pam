@@ -45,6 +45,7 @@ const static char *kdehome = NULL;
 const static char *kwalletd = NULL;
 const static char *socketPath = NULL;
 const static char *kwalletPamDataKey = NULL;
+const static char *logPrefix = NULL;
 
 #ifdef KWALLET5
 const static char *envVar = "PAM_KWALLET5_LOGIN";
@@ -83,6 +84,9 @@ static void parseArguments(int argc, const char **argv)
     if (kwalletPamDataKey == NULL) {
         kwalletPamDataKey = "kwallet5_key";
     }
+    if (logPrefix == NULL) {
+        logPrefix = "pam_kwallet5";
+    }
 #else
     if (kdehome == NULL) {
         kdehome = ".kde";
@@ -92,6 +96,9 @@ static void parseArguments(int argc, const char **argv)
     }
     if (kwalletPamDataKey == NULL) {
         kwalletPamDataKey = "kwallet_key";
+    }
+    if (logPrefix == NULL) {
+        logPrefix = "pam_kwallet";
     }
 #endif
 
@@ -118,13 +125,13 @@ static const char* get_env(pam_handle_t *ph, const char *name)
 static int set_env(pam_handle_t *pamh, const char *name, const char *value)
 {
     if (setenv(name, value, 1) < 0) {
-        pam_syslog(pamh, LOG_WARNING, "pam_kwallet: Couldn't setenv %s = %s", name, value);
+        pam_syslog(pamh, LOG_WARNING, "%s: Couldn't setenv %s = %s", logPrefix, name, value);
         //We do not return because pam_putenv might work
     }
 
     char *pamEnv = malloc(strlen(name) + strlen(value) + 2); //2 is for = and \0
     if (!pamEnv) {
-        pam_syslog(pamh, LOG_WARNING, "pam_kwallet: Impossible to allocate memory for pamEnv");
+        pam_syslog(pamh, LOG_WARNING, "%s: Impossible to allocate memory for pamEnv", logPrefix);
         return -1;
     }
 
@@ -213,9 +220,9 @@ cleanup:
 
 PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
-    pam_syslog(pamh, LOG_INFO, "pam_sm_authenticate\n");
+    pam_syslog(pamh, LOG_INFO, "%s: pam_sm_authenticate\n", logPrefix);
     if (get_env(pamh, envVar) != NULL) {
-        pam_syslog(pamh, LOG_INFO, "pam_kwallet: we were already executed");
+        pam_syslog(pamh, LOG_INFO, "%s: we were already executed", logPrefix);
         return PAM_SUCCESS;
     }
 
@@ -227,15 +234,15 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     const char *username;
     result = pam_get_user(pamh, &username, NULL);
     if (result != PAM_SUCCESS) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Couldn't get username %s",
-                   pam_strerror(pamh, result));
+        pam_syslog(pamh, LOG_ERR, "%s: Couldn't get username %s",
+                   logPrefix, pam_strerror(pamh, result));
         return PAM_IGNORE;//Since we are not an essential module, just make pam ignore us
     }
 
     struct passwd *userInfo;
     userInfo = getpwnam(username);
     if (!userInfo) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Couldn't get user info (passwd) info");
+        pam_syslog(pamh, LOG_ERR, "%s: Couldn't get user info (passwd) info", logPrefix);
         return PAM_IGNORE;
     }
 
@@ -243,18 +250,18 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     result = pam_get_item(pamh, PAM_AUTHTOK, (const void**)&password);
 
     if (result != PAM_SUCCESS) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Couldn't get password %s",
+        pam_syslog(pamh, LOG_ERR, "%s: Couldn't get password %s", logPrefix,
                    pam_strerror(pamh, result));
         return PAM_IGNORE;
     }
 
     if (!password) {
-        pam_syslog(pamh, LOG_NOTICE, "pam_kwallet: Couldn't get password (it is empty)");
+        pam_syslog(pamh, LOG_NOTICE, "%s: Couldn't get password (it is empty)", logPrefix);
         //Asking for the password ourselves
         result = prompt_for_password(pamh);
         if (result != PAM_SUCCESS) {
-            pam_syslog(pamh, LOG_ERR, "pam_kwallet: Prompt for password failed %s",
-                pam_strerror(pamh, result)
+            pam_syslog(pamh, LOG_ERR, "%s: Prompt for password failed %s",
+                       logPrefix, pam_strerror(pamh, result)
             );
             return PAM_IGNORE;
         }
@@ -263,20 +270,20 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     //even though we just set it, better check to be 100% sure
     result = pam_get_item(pamh, PAM_AUTHTOK, (const void**)&password);
     if (result != PAM_SUCCESS || !password) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Password is not there even though we set it %s",
+        pam_syslog(pamh, LOG_ERR, "%s: Password is not there even though we set it %s", logPrefix,
                    pam_strerror(pamh, result));
         return PAM_IGNORE;
     }
 
     char *key = malloc(sizeof(char) * KWALLET_PAM_KEYSIZE);
     if (kwallet_hash(password, userInfo, key) != 0) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Fail into creating the hash");
+        pam_syslog(pamh, LOG_ERR, "%s: Fail into creating the hash", logPrefix);
         return PAM_IGNORE;
     }
 
     result = pam_set_data(pamh, kwalletPamDataKey, key, NULL);
     if (result != PAM_SUCCESS) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to store the hashed password: %s"
+        pam_syslog(pamh, LOG_ERR, "%s: Impossible to store the hashed password: %s", logPrefix
             , pam_strerror(pamh, result));
         return PAM_IGNORE;
     }
@@ -285,7 +292,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     const char *session_bit;
     result = pam_get_data(pamh, "sm_open_session", (const void **)&session_bit);
     if (result == PAM_SUCCESS) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: open_session was called before us, calling it now");
+        pam_syslog(pamh, LOG_ERR, "%s: open_session was called before us, calling it now", logPrefix);
         return pam_sm_open_session(pamh, flags, argc, argv);
     }
 
@@ -319,7 +326,7 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
     //Change to the user in case we are not it yet
     if (setgid (userInfo->pw_gid) < 0 || setuid (userInfo->pw_uid) < 0 ||
         setegid (userInfo->pw_gid) < 0 || seteuid (userInfo->pw_uid) < 0) {
-        syslog(LOG_ERR, "pam_kwallet: could not set gid/uid/euid/egit for kwalletd");
+        syslog(LOG_ERR, "%s: could not set gid/uid/euid/egit for kwalletd", logPrefix);
         goto cleanup;
     }
 
@@ -331,7 +338,7 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
 
     char *args[] = {strdup(kwalletd), "--pam-login", pipeInt, sockIn, NULL};
     execve(args[0], args, pam_getenvlist(pamh));
-    syslog(LOG_ERR, "pam_kwallet: could not execute kwalletd from %s", kwalletd);
+    syslog(LOG_ERR, "%s: could not execute kwalletd from %s", logPrefix, kwalletd);
 
 cleanup:
     exit(EXIT_FAILURE);
@@ -365,12 +372,12 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
 
     int toWalletPipe[2] = { -1, -1};
     if (pipe(toWalletPipe) < 0) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Couldn't create pipes");
+        pam_syslog(pamh, LOG_ERR, "%s: Couldn't create pipes", logPrefix);
     }
 
     int envSocket;
     if ((envSocket = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: couldn't create socket");
+        pam_syslog(pamh, LOG_ERR, "%s: couldn't create socket", logPrefix);
         return;
     }
 
@@ -386,7 +393,8 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
 
     int result = set_env(pamh, envVar, fullSocket);
     if (result != PAM_SUCCESS) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to set %s env, %s", envVar, pam_strerror(pamh, result));
+        pam_syslog(pamh, LOG_ERR, "%s: Impossible to set %s env, %s",
+                   logPrefix, envVar, pam_strerror(pamh, result));
         return;
     }
 
@@ -395,28 +403,28 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
     strcpy(local.sun_path, fullSocket);
     unlink(local.sun_path);//Just in case it exists from a previous login
 
-    pam_syslog(pamh, LOG_INFO, "pam-kwallet: final socket path: %s", fullSocket);
+    pam_syslog(pamh, LOG_INFO, "%s: final socket path: %s", logPrefix, fullSocket);
 
     len = strlen(local.sun_path) + sizeof(local.sun_family);
     if (bind(envSocket, (struct sockaddr *)&local, len) == -1) {
-        pam_syslog(pamh, LOG_INFO, "kwalletd: Couldn't bind to local file\n");
+        pam_syslog(pamh, LOG_INFO, "%s-kwalletd: Couldn't bind to local file\n", logPrefix);
         return;
     }
 
     if (listen(envSocket, 5) == -1) {
-        pam_syslog(pamh, LOG_INFO, "kwalletd: Couldn't listen in socket\n");
+        pam_syslog(pamh, LOG_INFO, "%s-kwalletd: Couldn't listen in socket\n", logPrefix);
         return;
     }
 
     if (chown(fullSocket, userInfo->pw_uid, userInfo->pw_gid) == -1) {
-        pam_syslog(pamh, LOG_INFO, "Couldn't change ownership of the socket");
+        pam_syslog(pamh, LOG_INFO, "%s: Couldn't change ownership of the socket", logPrefix);
         return;
     }
 
     pid_t pid;
     switch (pid = fork ()) {
     case -1:
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Couldn't fork to execv kwalletd");
+        pam_syslog(pamh, LOG_ERR, "%s: Couldn't fork to execv kwalletd", logPrefix);
         return;
 
     //Child fork, will contain kwalletd
@@ -432,7 +440,7 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
 
     close(toWalletPipe[0]);//Read end of the pipe, we will only use the write
     if (better_write(toWalletPipe[1], kwalletKey, KWALLET_PAM_KEYSIZE) < 0) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to write walletKey to walletPipe");
+        pam_syslog(pamh, LOG_ERR, "%s: Impossible to write walletKey to walletPipe", logPrefix);
         return;
     }
 
@@ -441,10 +449,10 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
 
 PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
-    pam_syslog(pamh, LOG_INFO, "pam_sm_open_session\n");
+    pam_syslog(pamh, LOG_INFO, "%s: pam_sm_open_session\n", logPrefix);
 
     if (get_env(pamh, envVar) != NULL) {
-        pam_syslog(pamh, LOG_INFO, "pam_kwallet: we were already executed");
+        pam_syslog(pamh, LOG_INFO, "%s: we were already executed", logPrefix);
         return PAM_SUCCESS;
     }
 
@@ -453,8 +461,8 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, cons
     int result;
     result = pam_set_data(pamh, "sm_open_session", "1", NULL);
     if (result != PAM_SUCCESS) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Impossible to store sm_open_session: %s"
-            , pam_strerror(pamh, result));
+        pam_syslog(pamh, LOG_ERR, "%s: Impossible to store sm_open_session: %s",
+                   logPrefix, pam_strerror(pamh, result));
         return PAM_IGNORE;
     }
 
@@ -462,15 +470,15 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, cons
     const char *username;
     result = pam_get_user(pamh, &username, NULL);
     if (result != PAM_SUCCESS) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Couldn't get username %s",
-                   pam_strerror(pamh, result));
+        pam_syslog(pamh, LOG_ERR, "%s: Couldn't get username %s",
+                   logPrefix, pam_strerror(pamh, result));
         return PAM_IGNORE;//Since we are not an essential module, just make pam ignore us
     }
 
     struct passwd *userInfo;
     userInfo = getpwnam(username);
     if (!userInfo) {
-        pam_syslog(pamh, LOG_ERR, "pam_kwallet: Couldn't get user info (passwd) info");
+        pam_syslog(pamh, LOG_ERR, "%s: Couldn't get user info (passwd) info", logPrefix);
         return PAM_IGNORE;
     }
 
@@ -478,7 +486,7 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, cons
     result = pam_get_data(pamh, kwalletPamDataKey, (const void **)&kwalletKey);
 
     if (result != PAM_SUCCESS) {
-        pam_syslog(pamh, LOG_INFO, "pam_kwallet: open_session called without %s", kwalletPamDataKey);
+        pam_syslog(pamh, LOG_INFO, "%s: open_session called without %s", logPrefix, kwalletPamDataKey);
         return PAM_SUCCESS;//We will wait for pam_sm_authenticate
     }
 
@@ -489,20 +497,20 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, cons
 
 PAM_EXTERN int pam_sm_close_session(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
-    pam_syslog(pamh, LOG_INFO, "pam_sm_close_session");
+    pam_syslog(pamh, LOG_INFO, "%s: pam_sm_close_session", logPrefix);
     return PAM_SUCCESS;
 }
 
 PAM_EXTERN int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
-    pam_syslog(pamh, LOG_INFO, "pam_sm_setcred");
+    pam_syslog(pamh, LOG_INFO, "%s: pam_sm_setcred", logPrefix);
     return PAM_SUCCESS;
 }
 
 
 PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
-    pam_syslog(pamh, LOG_INFO, "pam_sm_chauthtok");
+    pam_syslog(pamh, LOG_INFO, "%s: pam_sm_chauthtok", logPrefix);
     return PAM_SUCCESS;
 }
 
@@ -524,11 +532,11 @@ int mkpath(char *path, struct passwd *userInfo)
         if (stat(path, &sb)) {
             if (errno != ENOENT || (mkdir(path, 0777) &&
                 errno != EEXIST)) {
-                syslog(LOG_ERR, "Couldn't create directory: %s because: %d-%s", path, errno, strerror(errno));
+                syslog(LOG_ERR, "%s: Couldn't create directory: %s because: %d-%s", logPrefix, path, errno, strerror(errno));
                 return (-1);
             } else {
                 if (chown(path, userInfo->pw_uid, userInfo->pw_gid) == -1) {
-                    syslog(LOG_INFO, "Couldn't change ownership of: %s", path);
+                    syslog(LOG_INFO, "%s: Couldn't change ownership of: %s", logPrefix, path);
                 }
             }
         } else if (!S_ISDIR(sb.st_mode)) {
@@ -555,7 +563,7 @@ static char* createNewSalt(const char *path, struct passwd *userInfo)
 
     //If the file can't be created
     if (fd == NULL) {
-        syslog(LOG_ERR, "Couldn't open file: %s because: %d-%s", path, errno, strerror(errno));
+        syslog(LOG_ERR, "%s: Couldn't open file: %s because: %d-%s", logPrefix, path, errno, strerror(errno));
         return NULL;
     }
 
@@ -563,7 +571,7 @@ static char* createNewSalt(const char *path, struct passwd *userInfo)
     fclose(fd);
 
     if (chown(path, userInfo->pw_uid, userInfo->pw_gid) == -1) {
-        syslog(LOG_ERR, "Couldn't change ownership of the created salt file");
+        syslog(LOG_ERR, "%s: Couldn't change ownership of the created salt file", logPrefix);
     }
 
     return salt;
@@ -571,7 +579,7 @@ static char* createNewSalt(const char *path, struct passwd *userInfo)
 int kwallet_hash(const char *passphrase, struct passwd *userInfo, char *key)
 {
     if (!gcry_check_version("1.5.0")) {
-        syslog(LOG_ERR, "kwalletd: libcrypt version is too old");
+        syslog(LOG_ERR, "%s-kwalletd: libcrypt version is too old", logPrefix);
         return 1;
     }
 
@@ -590,7 +598,7 @@ int kwallet_hash(const char *passphrase, struct passwd *userInfo, char *key)
     } else {
         FILE *fd = fopen(path, "r");
         if (fd == NULL) {
-            syslog(LOG_ERR, "Couldn't open file: %s because: %d-%s", path, errno, strerror(errno));
+            syslog(LOG_ERR, "%s: Couldn't open file: %s because: %d-%s", logPrefix, path, errno, strerror(errno));
             return 1;
         }
         salt = (char*) malloc(sizeof(char) * KWALLET_PAM_SALTSIZE);
@@ -599,14 +607,14 @@ int kwallet_hash(const char *passphrase, struct passwd *userInfo, char *key)
         fclose(fd);
     }
     if (salt == NULL) {
-        syslog(LOG_ERR, "kwalletd: Couldn't create or read the salt file");
+        syslog(LOG_ERR, "%s-kwalletd: Couldn't create or read the salt file", logPrefix);
         return 1;
     }
 
     gcry_error_t error;
     error = gcry_control(GCRYCTL_INIT_SECMEM, 32768, 0);
     if (error != 0) {
-        syslog(LOG_ERR, "kwalletd: Can't get secure memory: %d", error);
+        syslog(LOG_ERR, "%s-kwalletd: Can't get secure memory: %d", logPrefix, error);
         return 1;
     }
 
