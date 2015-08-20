@@ -1,6 +1,9 @@
 project(pam_kwallet)
 cmake_minimum_required(VERSION 2.8.8)
 
+set(PROJECT_VERSION "5.4.0")
+set(PROJECT_VERSION_MAJOR 5)
+
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules" )
 
 find_package(PAM REQUIRED)
