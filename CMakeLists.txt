@@ -35,4 +35,4 @@ target_link_libraries (${library_name}
    ${LIBGCRYPT_LIBRARIES}
 )
 
-install(TARGETS ${library_name} DESTINATION /${CMAKE_INSTALL_LIBDIR}/security)
+install(TARGETS ${library_name} DESTINATION ${CMAKE_INSTALL_LIBDIR}/security)
