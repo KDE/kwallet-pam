@@ -29,6 +29,12 @@ set(pam_kwallet_SRCS
    pam_kwallet.c
 )
 
+if (APPLE)
+LIST(APPEND pam_kwallet_SRCS
+   pam_darwin.c
+)
+endif()
+
 add_library (${library_name} SHARED ${pam_kwallet_SRCS})
 set_target_properties (${library_name} PROPERTIES PREFIX "")
 target_link_libraries (${library_name}
