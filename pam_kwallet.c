@@ -30,6 +30,7 @@
 #include <pwd.h>
 #include <sys/stat.h>
 #include <sys/syslog.h>
+#include <sys/wait.h>
 #include <security/pam_modules.h>
 #include <security/pam_ext.h>
 #include <security/_pam_types.h>
@@ -330,13 +331,29 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
         goto cleanup;
     }
 
+    // Fork twice to daemonize kwallet
+    setsid();
+    pid_t pid = fork();
+    if (pid != 0) {
+        if (pid == -1) {
+            exit(EXIT_FAILURE);
+        } else {
+            exit(0);
+        }
+    }
+
     //TODO use a pam argument for full path kwalletd
     char pipeInt[4];
     sprintf(pipeInt, "%d", toWalletPipe[0]);
     char sockIn[4];
     sprintf(sockIn, "%d", envSocket);
 
-    char *args[] = {strdup(kwalletd), "--pam-login", pipeInt, sockIn, NULL};
+#ifdef KWALLET5
+    char* extraArg = NULL;
+#else
+    char* extraArg = "--nofork";
+#endif
+    char *args[] = {strdup(kwalletd), "--pam-login", pipeInt, sockIn, extraArg, NULL};
     execve(args[0], args, pam_getenvlist(pamh));
     syslog(LOG_ERR, "%s: could not execute kwalletd from %s", logPrefix, kwalletd);
 
@@ -422,6 +439,7 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
     }
 
     pid_t pid;
+    int status;
     switch (pid = fork ()) {
     case -1:
         pam_syslog(pamh, LOG_ERR, "%s: Couldn't fork to execv kwalletd", logPrefix);
@@ -435,6 +453,11 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
 
     //Parent
     default:
+        waitpid(pid, &status, 0);
+        if (status != 0) {
+            pam_syslog(pamh, LOG_ERR, "%s: Couldn't fork to execv kwalletd", logPrefix);
+            return;
+        }
         break;
     };
 
