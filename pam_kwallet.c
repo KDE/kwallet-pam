@@ -31,9 +31,14 @@
 #include <sys/stat.h>
 #include <sys/syslog.h>
 #include <sys/wait.h>
+#ifdef __APPLE__
+#include "pam_darwin.h"
+#include <security/pam_appl.h>
+#else
 #include <security/pam_modules.h>
 #include <security/pam_ext.h>
 #include <security/_pam_types.h>
+#endif
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>

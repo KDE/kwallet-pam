@@ -3,25 +3,26 @@
 # Once run this will define
 #
 #  LIBGCRYPT_FOUND - set if the system has the gcrypt library
+#  LIBGCRYPT_INCLUDE_DIR - the path to find the gcrypt header
 #  LIBGCRYPT_CFLAGS - the required gcrypt compilation flags
 #  LIBGCRYPT_LIBRARIES - the linker libraries needed to use the gcrypt library
 #
 # libgcrypt is moving to pkg-config, but earlier version don't have it
-# 
+#
 # Copyright (c) 2006 Brad Hards <bradh@kde.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
 # are met:
-# 
+#
 # 1. Redistributions of source code must retain the copyright
 #    notice, this list of conditions and the following disclaimer.
 # 2. Redistributions in binary form must reproduce the copyright
 #    notice, this list of conditions and the following disclaimer in the
 #    documentation and/or other materials provided with the distribution.
-# 3. The name of the author may not be used to endorse or promote products 
+# 3. The name of the author may not be used to endorse or promote products
 #    derived from this software without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
 # IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
 # OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
@@ -42,6 +43,7 @@ FIND_PROGRAM(LIBGCRYPTCONFIG_EXECUTABLE NAMES libgcrypt-config)
 
 #reset variables
 set(LIBGCRYPT_LIBRARIES)
+set(LIBGCRYPT_INCLUDE_DIR)
 set(LIBGCRYPT_CFLAGS)
 
 # if libgcrypt-config has been found
@@ -50,12 +52,17 @@ IF(LIBGCRYPTCONFIG_EXECUTABLE)
   # workaround for MinGW/MSYS
   # CMake can't starts shell scripts on windows so it need to use sh.exe
   EXECUTE_PROCESS(COMMAND sh ${LIBGCRYPTCONFIG_EXECUTABLE} --libs RESULT_VARIABLE _return_VALUE OUTPUT_VARIABLE LIBGCRYPT_LIBRARIES OUTPUT_STRIP_TRAILING_WHITESPACE)
+  EXECUTE_PROCESS(COMMAND sh ${LIBGCRYPTCONFIG_EXECUTABLE} --prefix RESULT_VARIABLE _return_VALUE OUTPUT_VARIABLE LIBGCRYPT_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
   EXECUTE_PROCESS(COMMAND sh ${LIBGCRYPTCONFIG_EXECUTABLE} --cflags RESULT_VARIABLE _return_VALUE OUTPUT_VARIABLE LIBGCRYPT_CFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
   EXECUTE_PROCESS(COMMAND sh ${LIBGCRYPTCONFIG_EXECUTABLE} --version RESULT_VARIABLE _return_VALUEVersion OUTPUT_VARIABLE LIBGCRYPT_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
 
   IF(NOT LIBGCRYPT_CFLAGS AND NOT _return_VALUE)
     SET(LIBGCRYPT_CFLAGS " ")
   ENDIF(NOT LIBGCRYPT_CFLAGS AND NOT _return_VALUE)
+
+  IF(LIBGCRYPT_PREFIX)
+    SET(LIBGCRYPT_INCLUDE_DIR "${LIBGCRYPT_PREFIX}/include")
+  ENDIF(LIBGCRYPT_PREFIX)
 
   IF(LIBGCRYPT_LIBRARIES AND LIBGCRYPT_CFLAGS)
     SET(LIBGCRYPT_FOUND TRUE)

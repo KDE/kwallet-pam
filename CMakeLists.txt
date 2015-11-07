@@ -14,6 +14,7 @@ include_directories (
    ${PAM_INCLUDE_DIR}
    ${CMAKE_BINARY_DIR}
    ${CMAKE_CURRENT_BINARY_DIR}
+   ${LIBGCRYPT_INCLUDE_DIR}
 )
 
 add_definitions(-DKWALLET5)
@@ -27,6 +28,12 @@ endif()
 set(pam_kwallet_SRCS
    pam_kwallet.c
 )
+
+if (APPLE)
+LIST(APPEND pam_kwallet_SRCS
+   pam_darwin.c
+)
+endif()
 
 add_library (${library_name} SHARED ${pam_kwallet_SRCS})
 set_target_properties (${library_name} PROPERTIES PREFIX "")
