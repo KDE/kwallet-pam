@@ -1,7 +1,7 @@
 project(pam_kwallet)
 cmake_minimum_required(VERSION 2.8.8)
 
-set(PROJECT_VERSION "5.4.95")
+set(PROJECT_VERSION "5.5.90")
 set(PROJECT_VERSION_MAJOR 5)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules" )
