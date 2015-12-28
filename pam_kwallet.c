@@ -422,6 +422,12 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
 
     struct sockaddr_un local;
     local.sun_family = AF_UNIX;
+
+    if ((size_t)len > sizeof(local.sun_path)) {
+        pam_syslog(pamh, LOG_ERR, "%s: socket path %s too long to open",
+                   logPrefix, fullSocket);
+        return;
+    }
     strcpy(local.sun_path, fullSocket);
     unlink(local.sun_path);//Just in case it exists from a previous login
 
