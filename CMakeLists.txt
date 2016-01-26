@@ -1,14 +1,24 @@
 project(pam_kwallet)
-cmake_minimum_required(VERSION 2.8.8)
+cmake_minimum_required(VERSION 2.8.12)
 
 set(PROJECT_VERSION "5.5.90")
 set(PROJECT_VERSION_MAJOR 5)
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules" )
+find_package (ECM 1.2.0 REQUIRED NO_MODULE)
+set (CMAKE_MODULE_PATH ${ECM_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules" )
+
+include(KDEInstallDirs)
 
 find_package(PAM REQUIRED)
 find_package(LibGcrypt 1.5.0 REQUIRED)
-include(GNUInstallDirs)
+
+find_program(SOCAT_EXECUTABLE socat)
+
+if (SOCAT_EXECUTABLE)
+  message (STATUS "Found socat executable: ${SOCAT_EXECUTABLE}")
+else ()
+  message (FATAL_ERROR "socat is required for pam_kwallet to work")
+endif ()
 
 include_directories (
    ${PAM_INCLUDE_DIR}
@@ -43,3 +53,9 @@ target_link_libraries (${library_name}
 )
 
 install(TARGETS ${library_name} DESTINATION ${CMAKE_INSTALL_LIBDIR}/security)
+
+configure_file(pam_kwallet_init.desktop.cmake ${CMAKE_BINARY_DIR}/pam_kwallet_init.desktop)
+
+install(PROGRAMS pam_kwallet_init DESTINATION ${LIBEXEC_INSTALL_DIR})
+
+install(FILES ${CMAKE_BINARY_DIR}/pam_kwallet_init.desktop DESTINATION ${AUTOSTART_INSTALL_DIR})
