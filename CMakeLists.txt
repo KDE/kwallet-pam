@@ -17,7 +17,7 @@ find_program(SOCAT_EXECUTABLE socat)
 if (SOCAT_EXECUTABLE)
   message (STATUS "Found socat executable: ${SOCAT_EXECUTABLE}")
 else ()
-  message (FATAL_ERROR "socat is required for pam_kwallet to work")
+  message (WARNING "socat is required for pam_kwallet to work")
 endif ()
 
 include_directories (
