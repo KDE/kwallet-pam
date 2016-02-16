@@ -2,6 +2,7 @@
 Name=KWallet PAM Socket Connection
 Name[ca]=Connexió a sòcol PAM del KWallet
 Name[ca@valencia]=Connexió a sòcol PAM del KWallet
+Name[cs]=Připojení Socketu Kwallet PAM
 Name[de]=Verbindung zu KWallet-PAM-Socket
 Name[es]=Conexión con el «socket» PAM de KWallet
 Name[fi]=KWalletin PAM-pistokeyhteys
