@@ -1,7 +1,7 @@
 project(pam_kwallet)
 cmake_minimum_required(VERSION 2.8.12)
 
-set(PROJECT_VERSION "5.5.95")
+set(PROJECT_VERSION "5.6.90")
 set(PROJECT_VERSION_MAJOR 5)
 
 find_package (ECM 1.2.0 REQUIRED NO_MODULE)
