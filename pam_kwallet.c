@@ -107,10 +107,6 @@ static void parseArguments(int argc, const char **argv)
         logPrefix = "pam_kwallet";
     }
 #endif
-
-    if (socketPath == NULL) {
-        socketPath = "/tmp";
-    }
 }
 
 static const char* get_env(pam_handle_t *ph, const char *name)
@@ -404,14 +400,28 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
     }
 
 #ifdef KWALLET5
-    const char *socketPrefix = "kwallet5_";
+    const char *socketPrefix = "kwallet5";
 #else
-    const char *socketPrefix = "kwallet_";
+    const char *socketPrefix = "kwallet";
 #endif
 
-    int len = strlen(socketPath) + strlen(userInfo->pw_name) + strlen(socketPrefix) + 9;// 9 = slash+.socket+null
-    char *fullSocket = (char*) malloc(len);
-    sprintf(fullSocket, "%s/%s%s%s", socketPath, socketPrefix, userInfo->pw_name, ".socket");
+    char *fullSocket = NULL;
+    if (socketPath) {
+        size_t needed = snprintf(NULL, 0, "%s/%s_%s%s", socketPath, socketPrefix, userInfo->pw_name, ".socket");
+        fullSocket = malloc(needed);
+        snprintf(fullSocket, needed, "%s/%s_%s%s", socketPath, socketPrefix, userInfo->pw_name, ".socket");
+    } else {
+        socketPath = get_env(pamh, "XDG_RUNTIME_DIR");
+        if (socketPath) {
+            size_t needed = snprintf(NULL, 0, "%s/%s%s", socketPath, socketPrefix, ".socket");
+            fullSocket = malloc(needed);
+            snprintf(fullSocket, needed, "%s/%s%s", socketPath, socketPrefix, ".socket");
+        } else {
+            size_t needed = snprintf(NULL, 0, "/tmp/%s_%s%s", socketPrefix, userInfo->pw_name, ".socket");
+            fullSocket = malloc(needed);
+            snprintf(fullSocket, needed, "/tmp/%s_%s%s", socketPrefix, userInfo->pw_name, ".socket");
+        }
+    }
 
     int result = set_env(pamh, envVar, fullSocket);
     if (result != PAM_SUCCESS) {
@@ -423,7 +433,7 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
     struct sockaddr_un local;
     local.sun_family = AF_UNIX;
 
-    if ((size_t)len > sizeof(local.sun_path)) {
+    if (strlen(fullSocket) > sizeof(local.sun_path)) {
         pam_syslog(pamh, LOG_ERR, "%s: socket path %s too long to open",
                    logPrefix, fullSocket);
         return;
@@ -433,7 +443,7 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
 
     pam_syslog(pamh, LOG_INFO, "%s: final socket path: %s", logPrefix, fullSocket);
 
-    len = strlen(local.sun_path) + sizeof(local.sun_family);
+    size_t len = strlen(local.sun_path) + sizeof(local.sun_family);
     if (bind(envSocket, (struct sockaddr *)&local, len) == -1) {
         pam_syslog(pamh, LOG_INFO, "%s-kwalletd: Couldn't bind to local file\n", logPrefix);
         return;
