@@ -408,16 +408,19 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
     char *fullSocket = NULL;
     if (socketPath) {
         size_t needed = snprintf(NULL, 0, "%s/%s_%s%s", socketPath, socketPrefix, userInfo->pw_name, ".socket");
+        needed += 1;
         fullSocket = malloc(needed);
         snprintf(fullSocket, needed, "%s/%s_%s%s", socketPath, socketPrefix, userInfo->pw_name, ".socket");
     } else {
         socketPath = get_env(pamh, "XDG_RUNTIME_DIR");
         if (socketPath) {
             size_t needed = snprintf(NULL, 0, "%s/%s%s", socketPath, socketPrefix, ".socket");
+            needed += 1;
             fullSocket = malloc(needed);
             snprintf(fullSocket, needed, "%s/%s%s", socketPath, socketPrefix, ".socket");
         } else {
             size_t needed = snprintf(NULL, 0, "/tmp/%s_%s%s", socketPrefix, userInfo->pw_name, ".socket");
+            needed += 1;
             fullSocket = malloc(needed);
             snprintf(fullSocket, needed, "/tmp/%s_%s%s", socketPrefix, userInfo->pw_name, ".socket");
         }
