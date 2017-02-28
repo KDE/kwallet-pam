@@ -35,6 +35,7 @@ Name[zh_TW]=KWallet PAM Socket 連線
 Comment=Connect to KWallet PAM socket
 Comment[ca]=Connecta a un sòcol PAM del KWallet
 Comment[ca@valencia]=Connecta a un sòcol PAM del KWallet
+Comment[cs]=Připojit k socketu Kwallet PAM
 Comment[da]=Forbind til KWallet PAM-sokkel
 Comment[de]=Zum KWallet-PAM-Socket verbinden
 Comment[el]=Σύνδεση με υποδοχή KWallet PAM
