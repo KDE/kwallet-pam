@@ -45,6 +45,19 @@ LIST(APPEND pam_kwallet_SRCS
 )
 endif()
 
+# Handle different PAM header styles:
+#  - "Linux style" has pam_ext.h
+#  - "BSD style" has pam_appl.h
+#
+find_file(PAM_EXT_PATH security/pam_ext.h)
+find_file(PAM_APPL_PATH security/pam_appl.h)
+if (PAM_EXT_PATH)
+    add_definitions(-DHAVE_PAM_EXT)
+endif()
+if (PAM_APPL_PATH)
+    add_definitions(-DHAVE_PAM_APPL)
+endif()
+
 add_library (${library_name} SHARED ${pam_kwallet_SRCS})
 set_target_properties (${library_name} PROPERTIES PREFIX "")
 target_link_libraries (${library_name}

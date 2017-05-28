@@ -31,17 +31,37 @@
 #include <sys/stat.h>
 #include <sys/syslog.h>
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+
+/* PAM headers.
+ *
+ * There are three styles in play:
+ *  - Apple, which has no pam_ext.h, does have pam_appl.h, does have pam_syslog
+ *  - Linux, which has pam_ext.h, does have pam_appl.h, does have pam_syslog
+ *  - BSD, which has no pam_ext.h, does have pam_appl.h, but no pam_syslog
+ * In the latter case, #define pam_syslog away.
+ */
 #ifdef __APPLE__
 #include "pam_darwin.h"
 #include <security/pam_appl.h>
 #else
 #include <security/pam_modules.h>
+#ifdef HAVE_PAM_EXT
+/* "Linux style" */
 #include <security/pam_ext.h>
 #include <security/_pam_types.h>
 #endif
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
+#ifdef HAVE_PAM_APPL
+/* "BSD style" .. see also __APPLE__, above */
+#include <security/pam_appl.h>
+#ifndef HAVE_PAM_EXT
+/* FreeBSD has no pam_syslog(), va-macro it away */
+#define pam_syslog(...)
+#endif
+#endif
+#endif
 
 #define KWALLET_PAM_KEYSIZE 56
 #define KWALLET_PAM_SALTSIZE 56
