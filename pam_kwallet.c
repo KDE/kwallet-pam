@@ -722,12 +722,18 @@ int kwallet_hash(const char *passphrase, struct passwd *userInfo, char *key)
 
     gcry_error_t error;
 
+    /* We cannot call GCRYCTL_INIT_SECMEM as it drops privileges if getuid() != geteuid().
+     * PAM modules are in many cases executed through setuid binaries, which this call
+     * would break.
+     * It was never effective anyway as neither key nor passphrase are in secure memory,
+     * which is a prerequisite for secure operation...
     error = gcry_control(GCRYCTL_INIT_SECMEM, 32768, 0);
     if (error != 0) {
         free(salt);
         syslog(LOG_ERR, "%s-kwalletd: Can't get secure memory: %d", logPrefix, error);
         return 1;
     }
+    */
 
     gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
