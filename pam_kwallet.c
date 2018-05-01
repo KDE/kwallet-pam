@@ -82,7 +82,7 @@ const static char *envVar = "PAM_KWALLET_LOGIN";
 
 static int argumentsParsed = -1;
 
-int kwallet_hash(const char *passphrase, struct passwd *userInfo, char *key);
+int kwallet_hash(pam_handle_t *pamh, const char *passphrase, struct passwd *userInfo, char *key);
 
 static void parseArguments(int argc, const char **argv)
 {
@@ -325,7 +325,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     }
 
     char *key = malloc(KWALLET_PAM_KEYSIZE);
-    if (!key || kwallet_hash(password, userInfo, key) != 0) {
+    if (!key || kwallet_hash(pamh, password, userInfo, key) != 0) {
         free(key);
         pam_syslog(pamh, LOG_ERR, "%s: Fail into creating the hash", logPrefix);
         return PAM_IGNORE;
@@ -352,6 +352,26 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     return PAM_SUCCESS;
 }
 
+static int drop_privileges(struct passwd *userInfo)
+{
+    /* When dropping privileges from root, the `setgroups` call will
+    * remove any extraneous groups. If we don't call this, then
+    * even though our uid has dropped, we may still have groups
+    * that enable us to do super-user things. This will fail if we
+    * aren't root, so don't bother checking the return value, this
+    * is just done as an optimistic privilege dropping function.
+    */
+    setgroups(0, NULL);
+
+    //Change to the user in case we are not it yet
+    if (setgid (userInfo->pw_gid) < 0 || setuid (userInfo->pw_uid) < 0 ||
+        setegid (userInfo->pw_gid) < 0 || seteuid (userInfo->pw_uid) < 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
 static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toWalletPipe[2], int envSocket)
 {
     //In the child pam_syslog does not work, using syslog directly
@@ -366,18 +386,8 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
     //This is the side of the pipe PAM will send the hash to
     close (toWalletPipe[1]);
 
-    /* When dropping privileges from root, the `setgroups` call will
-    * remove any extraneous groups. If we don't call this, then
-    * even though our uid has dropped, we may still have groups
-    * that enable us to do super-user things. This will fail if we
-    * aren't root, so don't bother checking the return value, this
-    * is just done as an optimistic privilege dropping function.
-    */
-    setgroups(0, NULL);
-
     //Change to the user in case we are not it yet
-    if (setgid (userInfo->pw_gid) < 0 || setuid (userInfo->pw_uid) < 0 ||
-        setegid (userInfo->pw_gid) < 0 || seteuid (userInfo->pw_uid) < 0) {
+    if (drop_privileges(userInfo) < 0) {
         syslog(LOG_ERR, "%s: could not set gid/uid/euid/egit for kwalletd", logPrefix);
         goto cleanup;
     }
@@ -619,7 +629,7 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const c
     return PAM_SUCCESS;
 }
 
-int mkpath(char *path, struct passwd *userInfo)
+static int mkpath(char *path)
 {
     struct stat sb;
     char *slash;
@@ -639,10 +649,6 @@ int mkpath(char *path, struct passwd *userInfo)
                 errno != EEXIST)) {
                 syslog(LOG_ERR, "%s: Couldn't create directory: %s because: %d-%s", logPrefix, path, errno, strerror(errno));
                 return (-1);
-            } else {
-                if (chown(path, userInfo->pw_uid, userInfo->pw_gid) == -1) {
-                    syslog(LOG_INFO, "%s: Couldn't change ownership of: %s", logPrefix, path);
-                }
             }
         } else if (!S_ISDIR(sb.st_mode)) {
             return (-1);
@@ -654,34 +660,49 @@ int mkpath(char *path, struct passwd *userInfo)
     return (0);
 }
 
-static char* createNewSalt(const char *path, struct passwd *userInfo)
+static void createNewSalt(pam_handle_t *pamh, const char *path, struct passwd *userInfo)
 {
-    unlink(path);//in case the file already exists
+    const int pid = fork();
+    if (pid == -1) {
+        pam_syslog(pamh, LOG_ERR, "%s: Couldn't fork to create salt file", logPrefix);
+    } else if (pid == 0) {
+        // Child process
+        if (drop_privileges(userInfo) < 0) {
+            syslog(LOG_ERR, "%s: could not set gid/uid/euid/egit for salt file creation", logPrefix);
+            exit(-1);
+        }
 
-    char *dir = strdup(path);
-    dir[strlen(dir) - 14] = '\0';//remove kdewallet.salt
-    mkpath(dir, userInfo);//create the path in case it does not exists
-    free(dir);
+        unlink(path);//in case the file already exists
 
-    char *salt = gcry_random_bytes(KWALLET_PAM_SALTSIZE, GCRY_STRONG_RANDOM);
-    FILE *fd = fopen(path, "w");
+        char *dir = strdup(path);
+        dir[strlen(dir) - 14] = '\0';//remove kdewallet.salt
+        mkpath(dir); //create the path in case it does not exists
+        free(dir);
 
-    //If the file can't be created
-    if (fd == NULL) {
-        syslog(LOG_ERR, "%s: Couldn't open file: %s because: %d-%s", logPrefix, path, errno, strerror(errno));
-        return NULL;
+        char *salt = gcry_random_bytes(KWALLET_PAM_SALTSIZE, GCRY_STRONG_RANDOM);
+        FILE *fd = fopen(path, "w");
+
+        //If the file can't be created
+        if (fd == NULL) {
+            syslog(LOG_ERR, "%s: Couldn't open file: %s because: %d-%s", logPrefix, path, errno, strerror(errno));
+            exit(-2);
+        }
+
+        fwrite(salt, KWALLET_PAM_SALTSIZE, 1, fd);
+        fclose(fd);
+
+        exit(0); // success
+    } else {
+        // pam process, just wait for child to finish
+        int status;
+        waitpid(pid, &status, 0);
+        if (status != 0) {
+            pam_syslog(pamh, LOG_ERR, "%s: Couldn't create salt file", logPrefix);
+        }
     }
-
-    fwrite(salt, KWALLET_PAM_SALTSIZE, 1, fd);
-    fclose(fd);
-
-    if (chown(path, userInfo->pw_uid, userInfo->pw_gid) == -1) {
-        syslog(LOG_ERR, "%s: Couldn't change ownership of the created salt file", logPrefix);
-    }
-
-    return salt;
 }
-int kwallet_hash(const char *passphrase, struct passwd *userInfo, char *key)
+
+int kwallet_hash(pam_handle_t *pamh, const char *passphrase, struct passwd *userInfo, char *key)
 {
     if (!gcry_check_version("1.5.0")) {
         syslog(LOG_ERR, "%s-kwalletd: libcrypt version is too old", logPrefix);
@@ -700,19 +721,19 @@ int kwallet_hash(const char *passphrase, struct passwd *userInfo, char *key)
     struct stat info;
     char *salt = NULL;
     if (stat(path, &info) != 0 || info.st_size == 0) {
-        salt = createNewSalt(path, userInfo);
-    } else {
-        FILE *fd = fopen(path, "r");
-        if (fd == NULL) {
-            syslog(LOG_ERR, "%s: Couldn't open file: %s because: %d-%s", logPrefix, path, errno, strerror(errno));
-            free(path);
-            return 1;
-        }
-        salt = (char*) malloc(KWALLET_PAM_SALTSIZE);
-        memset(salt, '\0', KWALLET_PAM_SALTSIZE);
-        fread(salt, KWALLET_PAM_SALTSIZE, 1, fd);
-        fclose(fd);
+        createNewSalt(pamh, path, userInfo);
     }
+
+    FILE *fd = fopen(path, "r");
+    if (fd == NULL) {
+        syslog(LOG_ERR, "%s: Couldn't open file: %s because: %d-%s", logPrefix, path, errno, strerror(errno));
+        free(path);
+        return 1;
+    }
+    salt = (char*) malloc(KWALLET_PAM_SALTSIZE);
+    memset(salt, '\0', KWALLET_PAM_SALTSIZE);
+    fread(salt, KWALLET_PAM_SALTSIZE, 1, fd);
+    fclose(fd);
     free(path);
 
     if (salt == NULL) {
