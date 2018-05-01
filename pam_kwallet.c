@@ -326,13 +326,13 @@ static int drop_privileges(struct passwd *userInfo)
     return 0;
 }
 
-static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toWalletPipe[2], int envSocket)
+static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toWalletPipe[2], char *fullSocket)
 {
     //In the child pam_syslog does not work, using syslog directly
     int x = 2;
     //Close fd that are not of interest of kwallet
     for (; x < 64; ++x) {
-        if (x != toWalletPipe[0] && x != envSocket) {
+        if (x != toWalletPipe[0]) {
             close (x);
         }
     }
@@ -344,6 +344,36 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
     if (drop_privileges(userInfo) < 0) {
         syslog(LOG_ERR, "%s: could not set gid/uid/euid/egit for kwalletd", logPrefix);
         goto cleanup;
+    }
+
+    int envSocket;
+    if ((envSocket = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+        pam_syslog(pamh, LOG_ERR, "%s: couldn't create socket", logPrefix);
+        return;
+    }
+
+    struct sockaddr_un local;
+    local.sun_family = AF_UNIX;
+
+    if (strlen(fullSocket) > sizeof(local.sun_path)) {
+        pam_syslog(pamh, LOG_ERR, "%s: socket path %s too long to open",
+                   logPrefix, fullSocket);
+        return;
+    }
+    strcpy(local.sun_path, fullSocket);
+    unlink(local.sun_path);//Just in case it exists from a previous login
+
+    pam_syslog(pamh, LOG_INFO, "%s: final socket path: %s", logPrefix, fullSocket);
+
+    size_t len = strlen(local.sun_path) + sizeof(local.sun_family);
+    if (bind(envSocket, (struct sockaddr *)&local, len) == -1) {
+        pam_syslog(pamh, LOG_INFO, "%s-kwalletd: Couldn't bind to local file\n", logPrefix);
+        return;
+    }
+
+    if (listen(envSocket, 5) == -1) {
+        pam_syslog(pamh, LOG_INFO, "%s-kwalletd: Couldn't listen in socket\n", logPrefix);
+        return;
     }
 
     // Fork twice to daemonize kwallet
@@ -407,12 +437,6 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
         pam_syslog(pamh, LOG_ERR, "%s: Couldn't create pipes", logPrefix);
     }
 
-    int envSocket;
-    if ((envSocket = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
-        pam_syslog(pamh, LOG_ERR, "%s: couldn't create socket", logPrefix);
-        return;
-    }
-
 #ifdef KWALLET5
     const char *socketPrefix = "kwallet5_";
 #else
@@ -430,35 +454,6 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
         return;
     }
 
-    struct sockaddr_un local;
-    local.sun_family = AF_UNIX;
-
-    if ((size_t)len > sizeof(local.sun_path)) {
-        pam_syslog(pamh, LOG_ERR, "%s: socket path %s too long to open",
-                   logPrefix, fullSocket);
-        return;
-    }
-    strcpy(local.sun_path, fullSocket);
-    unlink(local.sun_path);//Just in case it exists from a previous login
-
-    pam_syslog(pamh, LOG_INFO, "%s: final socket path: %s", logPrefix, fullSocket);
-
-    len = strlen(local.sun_path) + sizeof(local.sun_family);
-    if (bind(envSocket, (struct sockaddr *)&local, len) == -1) {
-        pam_syslog(pamh, LOG_INFO, "%s-kwalletd: Couldn't bind to local file\n", logPrefix);
-        return;
-    }
-
-    if (listen(envSocket, 5) == -1) {
-        pam_syslog(pamh, LOG_INFO, "%s-kwalletd: Couldn't listen in socket\n", logPrefix);
-        return;
-    }
-
-    if (chown(fullSocket, userInfo->pw_uid, userInfo->pw_gid) == -1) {
-        pam_syslog(pamh, LOG_INFO, "%s: Couldn't change ownership of the socket", logPrefix);
-        return;
-    }
-
     pid_t pid;
     int status;
     switch (pid = fork ()) {
@@ -468,7 +463,7 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
 
     //Child fork, will contain kwalletd
     case 0:
-        execute_kwallet(pamh, userInfo, toWalletPipe, envSocket);
+        execute_kwallet(pamh, userInfo, toWalletPipe, fullSocket);
         /* Should never be reached */
         break;
 
