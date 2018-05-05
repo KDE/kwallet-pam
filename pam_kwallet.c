@@ -375,7 +375,8 @@ static int drop_privileges(struct passwd *userInfo)
 static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toWalletPipe[2], char *fullSocket)
 {
     //In the child pam_syslog does not work, using syslog directly
-    int x = 2;
+    //keep stderr open so socket doesn't returns us that fd
+    int x = 3;
     //Close fd that are not of interest of kwallet
     for (; x < 64; ++x) {
         if (x != toWalletPipe[0]) {
@@ -424,6 +425,8 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
         pam_syslog(pamh, LOG_INFO, "%s-kwalletd: Couldn't listen in socket\n", logPrefix);
         return;
     }
+    //finally close stderr
+    close(2);
 
     // Fork twice to daemonize kwallet
     setsid();
