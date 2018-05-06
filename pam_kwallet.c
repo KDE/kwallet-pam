@@ -720,9 +720,9 @@ int kwallet_hash(pam_handle_t *pamh, const char *passphrase, struct passwd *user
     }
 
 #ifdef KWALLET5
-    char *fixpath = "kwalletd/kdewallet.salt";
+    const char *fixpath = "kwalletd/kdewallet.salt";
 #else
-    char *fixpath = "share/apps/kwallet/kdewallet.salt";
+    const char *fixpath = "share/apps/kwallet/kdewallet.salt";
 #endif
     size_t pathSize = strlen(userInfo->pw_dir) + strlen(kdehome) + strlen(fixpath) + 3;//3 == /, / and \0
     char *path = (char*) malloc(pathSize);
