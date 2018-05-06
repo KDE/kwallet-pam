@@ -1,4 +1,4 @@
-project(pam_kwallet)
+project(pam_kwallet C)
 cmake_minimum_required(VERSION 2.8.12)
 
 set(PROJECT_VERSION "5.13.80")
