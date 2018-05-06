@@ -7,6 +7,7 @@ set(PROJECT_VERSION_MAJOR 5)
 find_package (ECM 1.2.0 REQUIRED NO_MODULE)
 set (CMAKE_MODULE_PATH ${ECM_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules" )
 
+include(CheckFunctionExists)
 include(KDEInstallDirs)
 
 find_package(PAM REQUIRED)
@@ -56,6 +57,14 @@ if (PAM_EXT_PATH)
 endif()
 if (PAM_APPL_PATH)
     add_definitions(-DHAVE_PAM_APPL)
+endif()
+
+set(CMAKE_REQUIRED_INCLUDES "string.h")
+check_function_exists(explicit_bzero HAVE_EXPLICIT_BZERO)
+set(CMAKE_REQUIRED_INCLUDES)
+
+if (HAVE_EXPLICIT_BZERO)
+    add_definitions(-DHAVE_EXPLICIT_BZERO)
 endif()
 
 add_library (${library_name} SHARED ${pam_kwallet_SRCS})

@@ -21,6 +21,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <errno.h>
 #include <grp.h>
 
@@ -177,11 +178,13 @@ static void wipeString(char *str)
         return;
     }
 
-    size_t len;
+    const size_t len = strlen (str);
+#if HAVE_EXPLICIT_BZERO
+    explicit_bzero(str, len);
+#else
     volatile char *vp;
 
     /* Defeats some optimizations */
-    len = strlen (str);
     memset (str, 0xAA, len);
     memset (str, 0xBB, len);
 
@@ -190,6 +193,7 @@ static void wipeString(char *str)
     while (*vp) {
         *(vp++) = 0xAA;
     }
+#endif
 
     free (str);
 }
