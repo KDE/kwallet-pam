@@ -707,6 +707,12 @@ int kwallet_hash(pam_handle_t *pamh, const char *passphrase, struct passwd *user
         return 1;
     }
 
+    struct stat info;
+    if (stat(userInfo->pw_dir, &info) != 0 || !S_ISDIR(info.st_mode)) {
+        syslog(LOG_ERR, "%s-kwalletd: user home folder does not exist", logPrefix);
+        return 1;
+    }
+
 #ifdef KWALLET5
     char *fixpath = "kwalletd/kdewallet.salt";
 #else
@@ -716,7 +722,6 @@ int kwallet_hash(pam_handle_t *pamh, const char *passphrase, struct passwd *user
     char *path = (char*) malloc(pathSize);
     sprintf(path, "%s/%s/%s", userInfo->pw_dir, kdehome, fixpath);
 
-    struct stat info;
     char *salt = NULL;
     if (stat(path, &info) != 0 || info.st_size == 0) {
         createNewSalt(pamh, path, userInfo);
