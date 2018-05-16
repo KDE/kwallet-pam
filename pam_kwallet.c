@@ -272,7 +272,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     pam_syslog(pamh, LOG_INFO, "%s: pam_sm_authenticate\n", logPrefix);
     if (get_env(pamh, envVar) != NULL) {
         pam_syslog(pamh, LOG_INFO, "%s: we were already executed", logPrefix);
-        return PAM_SUCCESS;
+        return PAM_IGNORE;
     }
 
     parseArguments(argc, argv);
@@ -349,7 +349,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
     }
 
     //TODO unlock kwallet that is already executed
-    return PAM_SUCCESS;
+    return PAM_IGNORE;
 }
 
 static int drop_privileges(struct passwd *userInfo)
