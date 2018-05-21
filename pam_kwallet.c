@@ -723,8 +723,14 @@ int kwallet_hash(pam_handle_t *pamh, const char *passphrase, struct passwd *user
     sprintf(path, "%s/%s/%s", userInfo->pw_dir, kdehome, fixpath);
 
     char *salt = NULL;
-    if (stat(path, &info) != 0 || info.st_size == 0) {
+    if (stat(path, &info) != 0 || info.st_size == 0 || !S_ISREG(info.st_mode)) {
         createNewSalt(pamh, path, userInfo);
+    }
+
+    if (stat(path, &info) != 0 || info.st_size == 0 || !S_ISREG(info.st_mode)) {
+        syslog(LOG_ERR, "%s: Failed to ensure %s looks like a salt file", logPrefix, path);
+        free(path);
+        return 1;
     }
 
     FILE *fd = fopen(path, "r");
