@@ -390,40 +390,42 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
     //Change to the user in case we are not it yet
     if (drop_privileges(userInfo) < 0) {
         syslog(LOG_ERR, "%s: could not set gid/uid/euid/egit for kwalletd", logPrefix);
+        free(fullSocket);
         goto cleanup;
     }
 
     int envSocket;
     if ((envSocket = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
-        pam_syslog(pamh, LOG_ERR, "%s: couldn't create socket", logPrefix);
-        return;
+        syslog(LOG_ERR, "%s: couldn't create socket", logPrefix);
+        free(fullSocket);
+        goto cleanup;
     }
 
     struct sockaddr_un local;
     local.sun_family = AF_UNIX;
 
     if (strlen(fullSocket) > sizeof(local.sun_path)) {
-        pam_syslog(pamh, LOG_ERR, "%s: socket path %s too long to open",
+        syslog(LOG_ERR, "%s: socket path %s too long to open",
                    logPrefix, fullSocket);
         free(fullSocket);
-        return;
+        goto cleanup;
     }
     strcpy(local.sun_path, fullSocket);
     free(fullSocket);
     fullSocket = NULL;
     unlink(local.sun_path);//Just in case it exists from a previous login
 
-    pam_syslog(pamh, LOG_INFO, "%s: final socket path: %s", logPrefix, local.sun_path);
+    syslog(LOG_INFO, "%s: final socket path: %s", logPrefix, local.sun_path);
 
     size_t len = strlen(local.sun_path) + sizeof(local.sun_family);
     if (bind(envSocket, (struct sockaddr *)&local, len) == -1) {
-        pam_syslog(pamh, LOG_INFO, "%s-kwalletd: Couldn't bind to local file\n", logPrefix);
-        return;
+        syslog(LOG_INFO, "%s-kwalletd: Couldn't bind to local file\n", logPrefix);
+        goto cleanup;
     }
 
     if (listen(envSocket, 5) == -1) {
-        pam_syslog(pamh, LOG_INFO, "%s-kwalletd: Couldn't listen in socket\n", logPrefix);
-        return;
+        syslog(LOG_INFO, "%s-kwalletd: Couldn't listen in socket\n", logPrefix);
+        goto cleanup;
     }
     //finally close stderr
     close(2);
