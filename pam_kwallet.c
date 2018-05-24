@@ -666,7 +666,7 @@ static int mkpath(char *path)
 
 static void createNewSalt(pam_handle_t *pamh, const char *path, struct passwd *userInfo)
 {
-    const int pid = fork();
+    const pid_t pid = fork();
     if (pid == -1) {
         pam_syslog(pamh, LOG_ERR, "%s: Couldn't fork to create salt file", logPrefix);
     } else if (pid == 0) {
