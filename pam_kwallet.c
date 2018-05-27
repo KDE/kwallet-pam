@@ -477,7 +477,7 @@ static int better_write(int fd, const char *buffer, int len)
         writtenBytes += result;
     }
 
-    return 0;
+    return writtenBytes;
 }
 
 static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const char *kwalletKey)
@@ -706,6 +706,79 @@ static void createNewSalt(pam_handle_t *pamh, const char *path, struct passwd *u
     }
 }
 
+static int readSaltFile(pam_handle_t *pamh, char *path, struct passwd *userInfo, char *saltOut)
+{
+    int readSaltPipe[2];
+    if (pipe(readSaltPipe) < 0) {
+        pam_syslog(pamh, LOG_ERR, "%s: Couldn't create read salt pipes", logPrefix);
+        return 0;
+    }
+
+    const pid_t pid = fork();
+    if (pid == -1) {
+        syslog(LOG_ERR, "%s: Couldn't fork to read salt file", logPrefix);
+        close(readSaltPipe[0]);
+        close(readSaltPipe[1]);
+        return 0;
+    } else if (pid == 0) {
+        // Child process
+        close(readSaltPipe[0]); // we won't be reading from the pipe
+        if (drop_privileges(userInfo) < 0) {
+            syslog(LOG_ERR, "%s: could not set gid/uid/euid/egit for salt file reading", logPrefix);
+            free(path);
+            close(readSaltPipe[1]);
+            exit(-1);
+        }
+
+        FILE *fd = fopen(path, "r");
+        if (fd == NULL) {
+            syslog(LOG_ERR, "%s: Couldn't open file: %s because: %d-%s", logPrefix, path, errno, strerror(errno));
+            free(path);
+            close(readSaltPipe[1]);
+            exit(-1);
+        }
+        free(path);
+        char salt[KWALLET_PAM_SALTSIZE] = {};
+        const int bytesRead = fread(salt, 1, KWALLET_PAM_SALTSIZE, fd);
+        fclose(fd);
+        if (bytesRead != KWALLET_PAM_SALTSIZE) {
+            syslog(LOG_ERR, "%s: Couldn't read the full salt file contents from file. %d:%d", logPrefix, bytesRead, KWALLET_PAM_SALTSIZE);
+            exit(-1);
+        }
+
+        const ssize_t written = better_write(readSaltPipe[1], salt, KWALLET_PAM_SALTSIZE);
+
+        close(readSaltPipe[1]);
+        if (written != KWALLET_PAM_SALTSIZE) {
+            syslog(LOG_ERR, "%s: Couldn't write the full salt file contents to pipe", logPrefix);
+            exit(-1);
+        }
+
+        exit(0);
+    }
+
+    close(readSaltPipe[1]); // we won't be writting from the pipe
+
+    // pam process, just wait for child to finish
+    int status;
+    waitpid(pid, &status, 0);
+    int success = 1;
+    if (status == 0) {
+        const ssize_t readBytes = read(readSaltPipe[0], saltOut, KWALLET_PAM_SALTSIZE);
+        if (readBytes != KWALLET_PAM_SALTSIZE) {
+            pam_syslog(pamh, LOG_ERR, "%s: Couldn't read the full salt file contents from pipe", logPrefix);
+            success = 0;
+        }
+    } else {
+        pam_syslog(pamh, LOG_ERR, "%s: Couldn't read salt file", logPrefix);
+        success = 0;
+    }
+
+    close(readSaltPipe[0]);
+
+    return success;
+}
+
 int kwallet_hash(pam_handle_t *pamh, const char *passphrase, struct passwd *userInfo, char *key)
 {
     if (!gcry_check_version("1.5.0")) {
@@ -728,7 +801,6 @@ int kwallet_hash(pam_handle_t *pamh, const char *passphrase, struct passwd *user
     char *path = (char*) malloc(pathSize);
     sprintf(path, "%s/%s/%s", userInfo->pw_dir, kdehome, fixpath);
 
-    char *salt = NULL;
     if (stat(path, &info) != 0 || info.st_size == 0 || !S_ISREG(info.st_mode)) {
         createNewSalt(pamh, path, userInfo);
     }
@@ -739,19 +811,10 @@ int kwallet_hash(pam_handle_t *pamh, const char *passphrase, struct passwd *user
         return 1;
     }
 
-    FILE *fd = fopen(path, "r");
-    if (fd == NULL) {
-        syslog(LOG_ERR, "%s: Couldn't open file: %s because: %d-%s", logPrefix, path, errno, strerror(errno));
-        free(path);
-        return 1;
-    }
-    salt = (char*) malloc(KWALLET_PAM_SALTSIZE);
-    memset(salt, '\0', KWALLET_PAM_SALTSIZE);
-    fread(salt, KWALLET_PAM_SALTSIZE, 1, fd);
-    fclose(fd);
+    char salt[KWALLET_PAM_SALTSIZE] = {};
+    const int readSaltSuccess = readSaltFile(pamh, path, userInfo, salt);
     free(path);
-
-    if (salt == NULL) {
+    if (!readSaltSuccess) {
         syslog(LOG_ERR, "%s-kwalletd: Couldn't create or read the salt file", logPrefix);
         return 1;
     }
@@ -778,6 +841,5 @@ int kwallet_hash(pam_handle_t *pamh, const char *passphrase, struct passwd *user
                             salt, KWALLET_PAM_SALTSIZE,
                             KWALLET_PAM_ITERATIONS,KWALLET_PAM_KEYSIZE, key);
 
-    free(salt);
     return (int) error; // gcry_kdf_derive returns 0 on success
 }
