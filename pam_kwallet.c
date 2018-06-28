@@ -676,6 +676,14 @@ static void createNewSalt(pam_handle_t *pamh, const char *path, struct passwd *u
             exit(-1);
         }
 
+        // Don't re-create it if it already exists
+        struct stat info;
+        if (stat(path, &info) == 0 &&
+            info.st_size != 0 &&
+            S_ISREG(info.st_mode)) {
+            exit(0);
+        }
+
         unlink(path);//in case the file already exists
 
         char *dir = strdup(path);
@@ -725,6 +733,14 @@ static int readSaltFile(pam_handle_t *pamh, char *path, struct passwd *userInfo,
         close(readSaltPipe[0]); // we won't be reading from the pipe
         if (drop_privileges(userInfo) < 0) {
             syslog(LOG_ERR, "%s: could not set gid/uid/euid/egit for salt file reading", logPrefix);
+            free(path);
+            close(readSaltPipe[1]);
+            exit(-1);
+        }
+
+        struct stat info;
+        if (stat(path, &info) != 0 || info.st_size == 0 || !S_ISREG(info.st_mode)) {
+            syslog(LOG_ERR, "%s: Failed to ensure %s looks like a salt file", logPrefix, path);
             free(path);
             close(readSaltPipe[1]);
             exit(-1);
@@ -801,15 +817,7 @@ int kwallet_hash(pam_handle_t *pamh, const char *passphrase, struct passwd *user
     char *path = (char*) malloc(pathSize);
     sprintf(path, "%s/%s/%s", userInfo->pw_dir, kdehome, fixpath);
 
-    if (stat(path, &info) != 0 || info.st_size == 0 || !S_ISREG(info.st_mode)) {
-        createNewSalt(pamh, path, userInfo);
-    }
-
-    if (stat(path, &info) != 0 || info.st_size == 0 || !S_ISREG(info.st_mode)) {
-        syslog(LOG_ERR, "%s: Failed to ensure %s looks like a salt file", logPrefix, path);
-        free(path);
-        return 1;
-    }
+    createNewSalt(pamh, path, userInfo);
 
     char salt[KWALLET_PAM_SALTSIZE] = {};
     const int readSaltSuccess = readSaltFile(pamh, path, userInfo, salt);
