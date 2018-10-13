@@ -16,6 +16,7 @@
  *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA       *
  *************************************************************************************/
 
+#include <fcntl.h>
 #include <gcrypt.h>
 #include <stdio.h>
 #include <signal.h>
@@ -692,16 +693,21 @@ static void createNewSalt(pam_handle_t *pamh, const char *path, struct passwd *u
         free(dir);
 
         char *salt = gcry_random_bytes(KWALLET_PAM_SALTSIZE, GCRY_STRONG_RANDOM);
-        FILE *fd = fopen(path, "w");
+        const int fd = open(path, O_CREAT | O_WRONLY | O_TRUNC | O_CLOEXEC, 0600);
 
         //If the file can't be created
-        if (fd == NULL) {
+        if (fd == -1) {
             syslog(LOG_ERR, "%s: Couldn't open file: %s because: %d-%s", logPrefix, path, errno, strerror(errno));
             exit(-2);
         }
 
-        fwrite(salt, KWALLET_PAM_SALTSIZE, 1, fd);
-        fclose(fd);
+        const ssize_t wlen = write(fd, salt, KWALLET_PAM_SALTSIZE);
+        close(fd);
+        if (wlen != KWALLET_PAM_SALTSIZE) {
+            syslog(LOG_ERR, "%s: Short write to file: %s", logPrefix, path);
+            unlink(path);
+            exit(-2);
+        }
 
         exit(0); // success
     } else {
@@ -746,8 +752,8 @@ static int readSaltFile(pam_handle_t *pamh, char *path, struct passwd *userInfo,
             exit(-1);
         }
 
-        FILE *fd = fopen(path, "r");
-        if (fd == NULL) {
+        const int fd = open(path, O_RDONLY | O_CLOEXEC);
+        if (fd == -1) {
             syslog(LOG_ERR, "%s: Couldn't open file: %s because: %d-%s", logPrefix, path, errno, strerror(errno));
             free(path);
             close(readSaltPipe[1]);
@@ -755,8 +761,8 @@ static int readSaltFile(pam_handle_t *pamh, char *path, struct passwd *userInfo,
         }
         free(path);
         char salt[KWALLET_PAM_SALTSIZE] = {};
-        const int bytesRead = fread(salt, 1, KWALLET_PAM_SALTSIZE, fd);
-        fclose(fd);
+        const ssize_t bytesRead = read(fd, salt, KWALLET_PAM_SALTSIZE);
+        close(fd);
         if (bytesRead != KWALLET_PAM_SALTSIZE) {
             syslog(LOG_ERR, "%s: Couldn't read the full salt file contents from file. %d:%d", logPrefix, bytesRead, KWALLET_PAM_SALTSIZE);
             exit(-1);
