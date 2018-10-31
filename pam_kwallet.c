@@ -469,7 +469,7 @@ static int better_write(int fd, const char *buffer, int len)
 {
     size_t writtenBytes = 0;
     while(writtenBytes < len) {
-        int result = write(fd, buffer + writtenBytes, len - writtenBytes);
+        ssize_t result = write(fd, buffer + writtenBytes, len - writtenBytes);
         if (result < 0) {
             if (errno != EAGAIN && errno != EINTR) {
                 return -1;
