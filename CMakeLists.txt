@@ -1,10 +1,10 @@
 project(pam_kwallet)
 cmake_minimum_required(VERSION 2.8.12)
-
+set(KF5_MIN_VERSION "5.50.0")
 set(PROJECT_VERSION "5.14.80")
 set(PROJECT_VERSION_MAJOR 5)
 
-find_package (ECM 1.2.0 REQUIRED NO_MODULE)
+find_package (ECM ${KF5_MIN_VERSION} REQUIRED NO_MODULE)
 set (CMAKE_MODULE_PATH ${ECM_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules" )
 
 include(CheckFunctionExists)
