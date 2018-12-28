@@ -274,7 +274,7 @@ static int is_graphical_session(pam_handle_t *pamh)
 
 PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
-    pam_syslog(pamh, LOG_INFO, "%s: pam_sm_authenticate\n", logPrefix);
+    pam_syslog(pamh, LOG_DEBUG, "%s: pam_sm_authenticate\n", logPrefix);
     if (get_env(pamh, envVar) != NULL) {
         pam_syslog(pamh, LOG_INFO, "%s: we were already executed", logPrefix);
         return PAM_IGNORE;
@@ -420,7 +420,7 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
     fullSocket = NULL;
     unlink(local.sun_path);//Just in case it exists from a previous login
 
-    syslog(LOG_INFO, "%s: final socket path: %s", logPrefix, local.sun_path);
+    syslog(LOG_DEBUG, "%s: final socket path: %s", logPrefix, local.sun_path);
 
     size_t len = strlen(local.sun_path) + sizeof(local.sun_family);
     if (bind(envSocket, (struct sockaddr *)&local, len) == -1) {
@@ -564,7 +564,7 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
 
 PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
-    pam_syslog(pamh, LOG_INFO, "%s: pam_sm_open_session\n", logPrefix);
+    pam_syslog(pamh, LOG_DEBUG, "%s: pam_sm_open_session\n", logPrefix);
 
     if (get_env(pamh, envVar) != NULL) {
         pam_syslog(pamh, LOG_INFO, "%s: we were already executed", logPrefix);
@@ -617,20 +617,20 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, cons
 
 PAM_EXTERN int pam_sm_close_session(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
-    pam_syslog(pamh, LOG_INFO, "%s: pam_sm_close_session", logPrefix);
+    pam_syslog(pamh, LOG_DEBUG, "%s: pam_sm_close_session", logPrefix);
     return PAM_SUCCESS;
 }
 
 PAM_EXTERN int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
-    pam_syslog(pamh, LOG_INFO, "%s: pam_sm_setcred", logPrefix);
+    pam_syslog(pamh, LOG_DEBUG, "%s: pam_sm_setcred", logPrefix);
     return PAM_SUCCESS;
 }
 
 
 PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
-    pam_syslog(pamh, LOG_INFO, "%s: pam_sm_chauthtok", logPrefix);
+    pam_syslog(pamh, LOG_DEBUG, "%s: pam_sm_chauthtok", logPrefix);
     return PAM_SUCCESS;
 }
 
