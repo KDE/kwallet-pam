@@ -75,9 +75,23 @@ target_link_libraries (${library_name}
 )
 
 install(TARGETS ${library_name} DESTINATION ${CMAKE_INSTALL_LIBDIR}/security)
-
 configure_file(pam_kwallet_init.desktop.cmake ${CMAKE_BINARY_DIR}/pam_kwallet_init.desktop)
 
 install(PROGRAMS pam_kwallet_init DESTINATION ${LIBEXEC_INSTALL_DIR})
-
 install(FILES ${CMAKE_BINARY_DIR}/pam_kwallet_init.desktop DESTINATION ${AUTOSTART_INSTALL_DIR})
+
+
+find_package(Qt5 ${QT_MIN_VERSION} CONFIG REQUIRED COMPONENTS
+    Core
+)
+
+include(KDEInstallDirs)
+include(KDECMakeSettings)
+include(ECMInstallIcons)
+include(ECMMarkAsTest)
+include(ECMMarkNonGuiExecutable)
+include(FeatureSummary)
+include(CheckIncludeFiles)
+
+add_executable(pam_test test/PamHandle.cpp test/main.cpp)
+target_link_libraries(pam_test Qt5::Core ${PAM_LIBRARIES})
