@@ -76,11 +76,7 @@ const static char *kwalletPamDataKey = NULL;
 const static char *logPrefix = NULL;
 static int force_run = 0;
 
-#ifdef KWALLET5
 const static char *envVar = "PAM_KWALLET5_LOGIN";
-#else
-const static char *envVar = "PAM_KWALLET_LOGIN";
-#endif
 
 static int argumentsParsed = -1;
 
@@ -105,7 +101,6 @@ static void parseArguments(int argc, const char **argv)
             force_run = 1;
         }
     }
-#ifdef KWALLET5
     if (kdehome == NULL) {
         kdehome = ".local/share";
     }
@@ -118,20 +113,6 @@ static void parseArguments(int argc, const char **argv)
     if (logPrefix == NULL) {
         logPrefix = "pam_kwallet5";
     }
-#else
-    if (kdehome == NULL) {
-        kdehome = ".kde";
-    }
-    if (kwalletd == NULL) {
-        kwalletd = "/usr/bin/kwalletd";
-    }
-    if (kwalletPamDataKey == NULL) {
-        kwalletPamDataKey = "kwallet_key";
-    }
-    if (logPrefix == NULL) {
-        logPrefix = "pam_kwallet";
-    }
-#endif
 }
 
 static const char* get_env(pam_handle_t *ph, const char *name)
@@ -452,12 +433,7 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
     char sockIn[4];
     sprintf(sockIn, "%d", envSocket);
 
-#ifdef KWALLET5
-    char* extraArg = NULL;
-#else
-    char* extraArg = "--nofork";
-#endif
-    char *args[] = {strdup(kwalletd), "--pam-login", pipeInt, sockIn, extraArg, NULL};
+    char *args[] = {strdup(kwalletd), "--pam-login", pipeInt, sockIn, NULL, NULL};
     execve(args[0], args, pam_getenvlist(pamh));
     syslog(LOG_ERR, "%s: could not execute kwalletd from %s", logPrefix, kwalletd);
 
@@ -495,11 +471,7 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
         pam_syslog(pamh, LOG_ERR, "%s: Couldn't create pipes", logPrefix);
     }
 
-#ifdef KWALLET5
     const char *socketPrefix = "kwallet5";
-#else
-    const char *socketPrefix = "kwallet";
-#endif
 
     char *fullSocket = NULL;
     if (socketPath) {
@@ -814,11 +786,7 @@ int kwallet_hash(pam_handle_t *pamh, const char *passphrase, struct passwd *user
         return 1;
     }
 
-#ifdef KWALLET5
     const char *fixpath = "kwalletd/kdewallet.salt";
-#else
-    const char *fixpath = "share/apps/kwallet/kdewallet.salt";
-#endif
     size_t pathSize = strlen(userInfo->pw_dir) + strlen(kdehome) + strlen(fixpath) + 3;//3 == /, / and \0
     char *path = (char*) malloc(pathSize);
     sprintf(path, "%s/%s/%s", userInfo->pw_dir, kdehome, fixpath);

@@ -28,13 +28,7 @@ include_directories (
    ${LIBGCRYPT_INCLUDE_DIR}
 )
 
-add_definitions(-DKWALLET5)
 set(library_name "pam_kwallet5")
-
-if ("${KWALLET4}" STREQUAL "1")
-    remove_definitions(-DKWALLET5)
-    set(library_name "pam_kwallet")
-endif()
 
 set(pam_kwallet_SRCS
    pam_kwallet.c
