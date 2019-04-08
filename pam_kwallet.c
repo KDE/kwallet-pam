@@ -105,7 +105,7 @@ static void parseArguments(int argc, const char **argv)
         kdehome = ".local/share";
     }
     if (kwalletd == NULL) {
-        kwalletd = "/usr/bin/kwalletd5";
+        kwalletd = KWALLETD_BIN_PATH;
     }
     if (kwalletPamDataKey == NULL) {
         kwalletPamDataKey = "kwallet5_key";

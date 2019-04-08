@@ -34,6 +34,13 @@ set(pam_kwallet_SRCS
    pam_kwallet.c
 )
 
+set(KF5_MIN_VERSION "5.57.0")
+find_package(KF5 ${KF5_MIN_VERSION} REQUIRED COMPONENTS
+    Wallet
+)
+
+add_definitions(-DKWALLETD_BIN_PATH="${KWALLETD_BIN_PATH}")
+
 if (APPLE)
 LIST(APPEND pam_kwallet_SRCS
    pam_darwin.c
