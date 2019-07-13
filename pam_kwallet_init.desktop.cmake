@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=KWallet PAM Socket Connection
 Name[ca]=Connexió a sòcol PAM del KWallet
-Name[ca@valencia]=Connexió a sòcol PAM del KWallet
+Name[ca@valencia]=Connexió al sòcol PAM de KWallet
 Name[cs]=Připojení Socketu Kwallet PAM
 Name[da]=KWallet PAM-sokkel-forbindelse
 Name[de]=Verbindung zu KWallet-PAM-Socket
@@ -40,7 +40,7 @@ Name[zh_CN]=KWallet PAM 套接字连接
 Name[zh_TW]=KWallet PAM Socket 連線
 Comment=Connect to KWallet PAM socket
 Comment[ca]=Connecta a un sòcol PAM del KWallet
-Comment[ca@valencia]=Connecta a un sòcol PAM del KWallet
+Comment[ca@valencia]=Connecta a un sòcol PAM de KWallet
 Comment[cs]=Připojit k socketu Kwallet PAM
 Comment[da]=Forbind til KWallet PAM-sokkel
 Comment[de]=Zum KWallet-PAM-Socket verbinden
