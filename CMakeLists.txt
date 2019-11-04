@@ -9,6 +9,7 @@ set (CMAKE_MODULE_PATH ${ECM_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/mod
 
 include(CheckFunctionExists)
 include(KDEInstallDirs)
+include(KDEClangFormat)
 
 find_package(PAM REQUIRED)
 find_package(LibGcrypt 1.5.0 REQUIRED)
@@ -74,6 +75,10 @@ target_link_libraries (${library_name}
    ${PAM_LIBRARIES}
    ${LIBGCRYPT_LIBRARIES}
 )
+
+# add clang-format target for all our real source files
+file(GLOB_RECURSE ALL_CLANG_FORMAT_SOURCE_FILES *.cpp *.h)
+kde_clang_format(${ALL_CLANG_FORMAT_SOURCE_FILES})
 
 install(TARGETS ${library_name} DESTINATION ${CMAKE_INSTALL_LIBDIR}/security)
 
