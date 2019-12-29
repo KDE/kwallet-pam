@@ -751,7 +751,7 @@ static int readSaltFile(pam_handle_t *pamh, char *path, struct passwd *userInfo,
         exit(0);
     }
 
-    close(readSaltPipe[1]); // we won't be writting from the pipe
+    close(readSaltPipe[1]); // we won't be writing from the pipe
 
     // pam process, just wait for child to finish
     int status;
