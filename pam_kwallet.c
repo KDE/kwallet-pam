@@ -310,18 +310,12 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
         return PAM_IGNORE;
     }
 
-    char *key = malloc(KWALLET_PAM_KEYSIZE);
-    if (!key || kwallet_hash(pamh, password, userInfo, key) != 0) {
-        free(key);
-        pam_syslog(pamh, LOG_ERR, "%s: Fail into creating the hash", logPrefix);
-        return PAM_IGNORE;
-    }
-
+    char *key = strdup(password);
     result = pam_set_data(pamh, kwalletPamDataKey, key, cleanup_free);
 
     if (result != PAM_SUCCESS) {
         free(key);
-        pam_syslog(pamh, LOG_ERR, "%s: Impossible to store the hashed password: %s", logPrefix
+        pam_syslog(pamh, LOG_ERR, "%s: Impossible to store the password: %s", logPrefix
             , pam_strerror(pamh, result));
         return PAM_IGNORE;
     }
@@ -574,15 +568,22 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, cons
         return PAM_IGNORE;
     }
 
-    const char *kwalletKey;
-    result = pam_get_data(pamh, kwalletPamDataKey, (const void **)&kwalletKey);
+    char *password;
+    result = pam_get_data(pamh, kwalletPamDataKey, (const void **)&password);
 
     if (result != PAM_SUCCESS) {
         pam_syslog(pamh, LOG_INFO, "%s: open_session called without %s", logPrefix, kwalletPamDataKey);
         return PAM_SUCCESS;//We will wait for pam_sm_authenticate
     }
 
-    start_kwallet(pamh, userInfo, kwalletKey);
+    char *key = malloc(KWALLET_PAM_KEYSIZE);
+    if (!key || kwallet_hash(pamh, password, userInfo, key) != 0) {
+        free(key);
+        pam_syslog(pamh, LOG_ERR, "%s: Fail into creating the hash", logPrefix);
+        return PAM_IGNORE;
+    }
+
+    start_kwallet(pamh, userInfo, key);
 
     return PAM_SUCCESS;
 }
