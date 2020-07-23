@@ -404,7 +404,7 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
     }
 
     if (listen(envSocket, 5) == -1) {
-        syslog(LOG_INFO, "%s-kwalletd: Couldn't listen in socket\n", logPrefix);
+        syslog(LOG_INFO, "%s-kwalletd: Couldn't listen in socket: %d-%s\n", logPrefix, errno, strerror(errno));
         goto cleanup;
     }
     //finally close stderr
