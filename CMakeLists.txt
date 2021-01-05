@@ -1,7 +1,7 @@
 project(pam_kwallet)
 cmake_minimum_required(VERSION 2.8.12)
 set(KF5_MIN_VERSION "5.74")
-set(PROJECT_VERSION "5.20.4")
+set(PROJECT_VERSION "5.20.5")
 set(PROJECT_VERSION_MAJOR 5)
 
 find_package (ECM ${KF5_MIN_VERSION} REQUIRED NO_MODULE)
