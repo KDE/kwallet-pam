@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -355,12 +356,13 @@ static int drop_privileges(struct passwd *userInfo)
 static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toWalletPipe[2], char *fullSocket)
 {
     //In the child pam_syslog does not work, using syslog directly
+
     //keep stderr open so socket doesn't returns us that fd
     int x = 3;
-    //Close fd that are not of interest of kwallet
+    //Set FD_CLOEXEC on fd that are not of interest of kwallet
     for (; x < 64; ++x) {
         if (x != toWalletPipe[0]) {
-            close (x);
+            fcntl(x, F_SETFD, FD_CLOEXEC);
         }
     }
 
