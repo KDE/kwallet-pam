@@ -1,6 +1,6 @@
 project(pam_kwallet)
 cmake_minimum_required(VERSION 2.8.12)
-set(KF5_MIN_VERSION "5.74")
+set(KF5_MIN_VERSION "5.78")
 set(PROJECT_VERSION "5.20.90")
 set(PROJECT_VERSION_MAJOR 5)
 
@@ -39,7 +39,7 @@ set(pam_kwallet_SRCS
    pam_kwallet.c
 )
 
-set(KF5_MIN_VERSION "5.74")
+set(KF5_MIN_VERSION "5.78")
 find_package(KF5 ${KF5_MIN_VERSION} REQUIRED COMPONENTS
     Wallet
 )
