@@ -1,5 +1,5 @@
 project(pam_kwallet)
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.16)
 set(KF5_MIN_VERSION "5.78")
 set(PROJECT_VERSION "5.21.80")
 set(PROJECT_VERSION_MAJOR 5)
