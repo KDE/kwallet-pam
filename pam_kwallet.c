@@ -75,6 +75,7 @@ const static char *kwalletd = NULL;
 const static char *socketPath = NULL;
 const static char *kwalletPamDataKey = NULL;
 const static char *logPrefix = NULL;
+const static char *runOnlyIf = NULL;
 static int force_run = 0;
 
 const static char *envVar = "PAM_KWALLET5_LOGIN";
@@ -100,6 +101,8 @@ static void parseArguments(int argc, const char **argv)
             socketPath= argv[x] + 11;
         } else if (strcmp(argv[x], "force_run") == 0) {
             force_run = 1;
+        } else if (strstr(argv[x], "only_if=") != NULL) {
+            runOnlyIf = argv[x] + 8;
         }
     }
     if (kdehome == NULL) {
@@ -234,6 +237,40 @@ cleanup:
 static void cleanup_free(pam_handle_t *pamh, void *ptr, int error_status)
 {
     free(ptr);
+}
+
+// If the "only_if" parameter is supplied, return true if the PAM service is mentioned
+static int check_run_only_if(pam_handle_t *pamh)
+{
+    const char *service_name = NULL, *runOnlyIfMatch = NULL;
+    int service_name_len = 0;
+
+    if (!runOnlyIf) {
+        return 1;
+    }
+
+    if (pam_get_item(pamh, PAM_SERVICE, (const void**) &service_name) != PAM_SUCCESS
+        || service_name == NULL) {
+        pam_syslog(pamh, LOG_ERR, "%s: Failed to get PAM_SERVICE", logPrefix);
+        return 0;
+    }
+
+    service_name_len = strlen(service_name);
+
+    // Go through all occurences of service_name in runOnlyIf and...
+    runOnlyIfMatch = runOnlyIf;
+    while((runOnlyIfMatch = strstr(runOnlyIfMatch, service_name)) != NULL) {
+        // ...if it starts at the beginning or after a ',' and ends at the and or before a ',',...
+        if ((runOnlyIfMatch == runOnlyIf || runOnlyIfMatch[-1] == ',')
+            && (runOnlyIfMatch[service_name_len] == ',' || runOnlyIfMatch[service_name_len] == '\0')) {
+            // ...it's a match!
+            return 1;
+        }
+
+        runOnlyIfMatch += service_name_len;
+    }
+
+    return 0;
 }
 
 static int is_graphical_session(pam_handle_t *pamh)
@@ -540,6 +577,11 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, cons
     }
 
     parseArguments(argc, argv);
+
+    if (!force_run && !check_run_only_if(pamh)) {
+        pam_syslog(pamh, LOG_INFO, "%s: not run in one of the listed PAM services, skipping. Use force_run parameter to ignore this.", logPrefix);
+        return PAM_IGNORE;
+    }
 
     if (!force_run && !is_graphical_session(pamh)) {
         pam_syslog(pamh, LOG_INFO, "%s: not a graphical session, skipping. Use force_run parameter to ignore this.", logPrefix);
