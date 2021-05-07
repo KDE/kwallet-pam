@@ -28,10 +28,9 @@ include_directories (
    ${CMAKE_CURRENT_BINARY_DIR}
    ${LIBGCRYPT_INCLUDE_DIR}
 )
-if (EXISTS "${CMAKE_SOURCE_DIR}/.git")
-   add_definitions(-DQT_DISABLE_DEPRECATED_BEFORE=0x060000)
-   add_definitions(-DKF_DISABLE_DEPRECATED_BEFORE_AND_AT=0x054200)
-endif()
+
+add_definitions(-DQT_DISABLE_DEPRECATED_BEFORE=0x050c00)
+add_definitions(-DKF_DISABLE_DEPRECATED_BEFORE_AND_AT=0x054200)
 
 set(library_name "pam_kwallet5")
 
