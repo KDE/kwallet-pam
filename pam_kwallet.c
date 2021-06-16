@@ -364,7 +364,7 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
         goto cleanup;
     }
 
-    struct sockaddr_un local;
+    struct sockaddr_un local = {};
     local.sun_family = AF_UNIX;
 
     if (strlen(fullSocket) > sizeof(local.sun_path)) {
@@ -378,8 +378,7 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
 
     syslog(LOG_DEBUG, "%s: final socket path: %s", logPrefix, local.sun_path);
 
-    size_t len = strlen(local.sun_path) + sizeof(local.sun_family);
-    if (bind(envSocket, (struct sockaddr *)&local, len) == -1) {
+    if (bind(envSocket, (struct sockaddr *)&local, sizeof(local)) == -1) {
         syslog(LOG_INFO, "%s-kwalletd: Couldn't bind to local file\n", logPrefix);
         goto cleanup;
     }
