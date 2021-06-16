@@ -223,7 +223,7 @@ static int is_graphical_session(pam_handle_t *pamh)
 {
     //Detect a graphical session
     const char *pam_tty = NULL, *pam_xdisplay = NULL,
-               *xdg_session_type = NULL, *display = NULL;
+               *xdg_session_type = NULL;
 
     pam_get_item(pamh, PAM_TTY, (const void**) &pam_tty);
 #ifdef PAM_XDISPLAY
