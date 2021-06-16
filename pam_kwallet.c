@@ -355,14 +355,12 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
     //Change to the user in case we are not it yet
     if (drop_privileges(userInfo) < 0) {
         syslog(LOG_ERR, "%s: could not set gid/uid/euid/egit for kwalletd", logPrefix);
-        free(fullSocket);
         goto cleanup;
     }
 
     int envSocket;
     if ((envSocket = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
         syslog(LOG_ERR, "%s: couldn't create socket", logPrefix);
-        free(fullSocket);
         goto cleanup;
     }
 
@@ -376,8 +374,6 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
         goto cleanup;
     }
     strcpy(local.sun_path, fullSocket);
-    free(fullSocket);
-    fullSocket = NULL;
     unlink(local.sun_path);//Just in case it exists from a previous login
 
     syslog(LOG_DEBUG, "%s: final socket path: %s", logPrefix, local.sun_path);
@@ -486,6 +482,7 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
     switch (pid = fork ()) {
     case -1:
         pam_syslog(pamh, LOG_ERR, "%s: Couldn't fork to execv kwalletd", logPrefix);
+        free(fullSocket);
         return;
 
     //Child fork, will contain kwalletd
@@ -503,6 +500,8 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
         }
         break;
     };
+
+    free(fullSocket);
 
     close(toWalletPipe[0]);//Read end of the pipe, we will only use the write
     if (better_write(toWalletPipe[1], kwalletKey, KWALLET_PAM_KEYSIZE) < 0) {
