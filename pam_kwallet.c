@@ -58,14 +58,15 @@
 #define KWALLET_PAM_SALTSIZE 56
 #define KWALLET_PAM_ITERATIONS 50000
 
+// Parameters
 const static char *kdehome = NULL;
 const static char *kwalletd = NULL;
 const static char *socketPath = NULL;
-const static char *kwalletPamDataKey = NULL;
-const static char *logPrefix = NULL;
 static int force_run = 0;
 
-const static char *envVar = "PAM_KWALLET5_LOGIN";
+const static char * const kwalletPamDataKey = "kwallet5_key";
+const static char * const logPrefix = "pam_kwallet5";
+const static char * const envVar = "PAM_KWALLET5_LOGIN";
 
 static int argumentsParsed = -1;
 
@@ -95,12 +96,6 @@ static void parseArguments(int argc, const char **argv)
     }
     if (kwalletd == NULL) {
         kwalletd = KWALLETD_BIN_PATH;
-    }
-    if (kwalletPamDataKey == NULL) {
-        kwalletPamDataKey = "kwallet5_key";
-    }
-    if (logPrefix == NULL) {
-        logPrefix = "pam_kwallet5";
     }
 }
 
