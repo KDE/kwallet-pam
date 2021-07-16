@@ -10,6 +10,7 @@ set (CMAKE_MODULE_PATH ${ECM_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/mod
 include(CheckFunctionExists)
 include(KDEInstallDirs)
 include(KDEClangFormat)
+include(ECMConfiguredInstall)
 
 find_package(PAM REQUIRED)
 find_package(LibGcrypt 1.5.0 REQUIRED)
@@ -90,3 +91,6 @@ configure_file(pam_kwallet_init.desktop.cmake ${CMAKE_BINARY_DIR}/pam_kwallet_in
 install(PROGRAMS pam_kwallet_init DESTINATION ${KDE_INSTALL_LIBEXECDIR})
 
 install(FILES ${CMAKE_BINARY_DIR}/pam_kwallet_init.desktop DESTINATION ${KDE_INSTALL_AUTOSTARTDIR})
+
+ecm_install_configured_files(INPUT plasma-kwallet-pam.service.in @ONLY DESTINATION
+        ${SYSTEMD_USER_UNIT_INSTALL_DIR})

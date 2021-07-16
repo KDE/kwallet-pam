@@ -90,3 +90,4 @@ Type=Application
 NoDisplay=true
 X-KDE-StartupNotify=false
 X-KDE-autostart-phase=0
+X-systemd-skip=true
