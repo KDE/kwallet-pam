@@ -1,5 +1,6 @@
 [Desktop Entry]
 Name=KWallet PAM Socket Connection
+Name[ar]=اتصال بمقبس التوثيق المحفظة ك
 Name[az]=KWallet PAM Socket Bağlantısı
 Name[ca]=Connexió a sòcol PAM del KWallet
 Name[ca@valencia]=Connexió al sòcol PAM de KWallet
@@ -43,6 +44,7 @@ Name[x-test]=xxKWallet PAM Socket Connectionxx
 Name[zh_CN]=KWallet PAM 套接字连接
 Name[zh_TW]=KWallet PAM Socket 連線
 Comment=Connect to KWallet PAM socket
+Comment[ar]=اتصل بمقبس التوثيق محفظة ك
 Comment[az]=KWallet PAM socket'ə qoşulmaq
 Comment[ca]=Connecta a un sòcol PAM del KWallet
 Comment[ca@valencia]=Connecta a un sòcol PAM de KWallet
