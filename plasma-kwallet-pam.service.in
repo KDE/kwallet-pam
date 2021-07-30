@@ -4,7 +4,7 @@ PartOf=graphical-session.target
 Before=plasma-plasmashell.service plasma-kded.service
 
 [Service]
-ExecStart=${CMAKE_INSTALL_FULL_LIBEXECDIR}/pam_kwallet_init
+ExecStart=@CMAKE_INSTALL_FULL_LIBEXECDIR@/pam_kwallet_init
 Type=simple
 Slice=background.slice
 Restart=no
