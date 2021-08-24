@@ -39,7 +39,6 @@ set(pam_kwallet_SRCS
    pam_kwallet.c
 )
 
-set(KF5_MIN_VERSION "5.82")
 find_package(KF5 ${KF5_MIN_VERSION} REQUIRED COMPONENTS
     Wallet
 )
