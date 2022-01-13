@@ -2,7 +2,7 @@ project(pam_kwallet)
 cmake_minimum_required(VERSION 3.16)
 set(KF5_MIN_VERSION "5.86")
 set(KDE_COMPILERSETTINGS_LEVEL "5.82")
-set(PROJECT_VERSION "5.23.80")
+set(PROJECT_VERSION "5.23.90")
 set(PROJECT_VERSION_MAJOR 5)
 
 find_package (ECM ${KF5_MIN_VERSION} REQUIRED NO_MODULE)
