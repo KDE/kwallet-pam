@@ -1,6 +1,6 @@
 project(pam_kwallet)
 cmake_minimum_required(VERSION 3.16)
-set(KF5_MIN_VERSION "5.86")
+set(KF5_MIN_VERSION "5.90")
 set(KDE_COMPILERSETTINGS_LEVEL "5.82")
 set(PROJECT_VERSION "5.24.80")
 set(PROJECT_VERSION_MAJOR 5)
@@ -93,4 +93,4 @@ install(PROGRAMS pam_kwallet_init DESTINATION ${KDE_INSTALL_LIBEXECDIR})
 install(FILES ${CMAKE_BINARY_DIR}/pam_kwallet_init.desktop DESTINATION ${KDE_INSTALL_AUTOSTARTDIR})
 
 ecm_install_configured_files(INPUT plasma-kwallet-pam.service.in @ONLY DESTINATION
-        ${SYSTEMD_USER_UNIT_INSTALL_DIR})
+        ${KDE_INSTALL_SYSTEMDUSERUNITDIR})
