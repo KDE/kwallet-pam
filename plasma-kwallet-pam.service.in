@@ -2,6 +2,7 @@
 Description=Unlock kwallet from pam credentials
 PartOf=graphical-session.target
 Before=plasma-plasmashell.service plasma-kded.service
+After=plasma-kwin_wayland.service plasma-kcminit.service
 
 [Service]
 ExecStart=@CMAKE_INSTALL_FULL_LIBEXECDIR@/pam_kwallet_init
