@@ -6,3 +6,5 @@ Dependencies:
   'require':
     'frameworks/extra-cmake-modules': '@latest'
     'frameworks/kwallet': '@latest'
+Options:
+  require-passing-tests-on: [ 'Linux', 'FreeBSD']
