@@ -2,6 +2,7 @@
 Name=KWallet PAM Socket Connection
 Name[ar]=اتصال بمقبس التوثيق المحفظة ك
 Name[az]=KWallet PAM Socket Bağlantısı
+Name[bg]=Връзка с KWallet PAM сокет
 Name[ca]=Connexió amb el sòcol PAM del KWallet
 Name[ca@valencia]=Connexió amb el sòcol PAM de KWallet
 Name[cs]=Připojení Socketu Kwallet PAM
@@ -47,6 +48,7 @@ Name[zh_TW]=KWallet PAM Socket 連線
 Comment=Connect to KWallet PAM socket
 Comment[ar]=اتصل بمقبس التوثيق محفظة ك
 Comment[az]=KWallet PAM socket'ə qoşulmaq
+Comment[bg]=Свързване с KWallet PAM сокет
 Comment[ca]=Connecta amb un sòcol PAM del KWallet
 Comment[ca@valencia]=Connecta amb un sòcol PAM de KWallet
 Comment[cs]=Připojit k socketu Kwallet PAM
