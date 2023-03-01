@@ -1,11 +1,11 @@
 project(pam_kwallet)
 cmake_minimum_required(VERSION 3.16)
-set(KF5_MIN_VERSION "5.102.0")
+set(KF6_MIN_VERSION "5.102.0")
 set(KDE_COMPILERSETTINGS_LEVEL "5.82")
 set(PROJECT_VERSION "5.27.80")
 set(PROJECT_VERSION_MAJOR 5)
 
-find_package (ECM ${KF5_MIN_VERSION} REQUIRED NO_MODULE)
+find_package (ECM ${KF6_MIN_VERSION} REQUIRED NO_MODULE)
 set (CMAKE_MODULE_PATH ${ECM_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules" )
 
 include(CheckFunctionExists)
@@ -40,7 +40,7 @@ set(pam_kwallet_SRCS
    pam_kwallet.c
 )
 
-find_package(KF5 ${KF5_MIN_VERSION} REQUIRED COMPONENTS
+find_package(KF6 ${KF6_MIN_VERSION} REQUIRED COMPONENTS
     Wallet
 )
 
