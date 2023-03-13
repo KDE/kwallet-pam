@@ -265,6 +265,11 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
         return PAM_IGNORE;
     }
 
+    if (userInfo->pw_uid == 0) {
+        pam_syslog(pamh, LOG_DEBUG, "%s: Refusing to do anything for the root user", logPrefix);
+        return PAM_IGNORE;
+    }
+
     const char *password;
     result = pam_get_item(pamh, PAM_AUTHTOK, (const void**)&password);
 
@@ -566,6 +571,11 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, cons
     userInfo = getpwnam(username);
     if (!userInfo) {
         pam_syslog(pamh, LOG_ERR, "%s: Couldn't get user info (passwd) info", logPrefix);
+        return PAM_IGNORE;
+    }
+
+    if (userInfo->pw_uid == 0) {
+        pam_syslog(pamh, LOG_DEBUG, "%s: Refusing to do anything for the root user", logPrefix);
         return PAM_IGNORE;
     }
 
