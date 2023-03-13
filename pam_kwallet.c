@@ -455,6 +455,19 @@ static void start_kwallet(pam_handle_t *pamh, struct passwd *userInfo, const cha
         snprintf(fullSocket, needed, "%s/%s_%s%s", socketPath, socketPrefix, userInfo->pw_name, ".socket");
     } else {
         socketPath = get_env(pamh, "XDG_RUNTIME_DIR");
+        // Check whether XDG_RUNTIME_DIR is usable
+        if (socketPath) {
+            struct stat rundir_stat;
+            if (stat(socketPath, &rundir_stat) != 0) {
+                pam_syslog(pamh, LOG_ERR, "%s: Failed to stat %s", logPrefix, socketPath);
+                socketPath = NULL;
+            } else if(!S_ISDIR(rundir_stat.st_mode) || (rundir_stat.st_mode & ~S_IFMT) != 0700
+                      || rundir_stat.st_uid != userInfo->pw_uid) {
+                pam_syslog(pamh, LOG_ERR, "%s: %s has wrong type, perms or ownership", logPrefix, socketPath);
+                socketPath = NULL;
+            }
+        }
+
         if (socketPath) {
             size_t needed = snprintf(NULL, 0, "%s/%s%s", socketPath, socketPrefix, ".socket");
             needed += 1;
