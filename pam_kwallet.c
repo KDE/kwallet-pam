@@ -294,6 +294,11 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, cons
         return PAM_IGNORE;
     }
 
+    if (password[0] == '\0') {
+        pam_syslog(pamh, LOG_NOTICE, "%s: Empty or missing password, doing nothing", logPrefix);
+        return PAM_IGNORE;
+    }
+
     char *key = strdup(password);
     result = pam_set_data(pamh, kwalletPamDataKey, key, cleanup_free);
 
