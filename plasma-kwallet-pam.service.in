@@ -1,7 +1,7 @@
 [Unit]
 Description=Unlock kwallet from pam credentials
 PartOf=graphical-session.target
-Before=plasma-plasmashell.service plasma-kded.service
+Before=plasma-plasmashell.service plasma-kded6.service
 After=plasma-kwin_wayland.service plasma-kcminit.service
 
 [Service]
