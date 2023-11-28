@@ -175,21 +175,10 @@ static int prompt_for_password(pam_handle_t *pamh)
         return result;
     }
 
-    //prepare the message
-    struct pam_message message;
-    memset (&message, 0, sizeof(message));
-    message.msg_style = PAM_PROMPT_ECHO_OFF;
-    message.msg = "Password: ";
-
-    //We only need one message, but we still have to send it in an array
-    const struct pam_message *msgs[1];
-    msgs[0] = &message;
-
-
     //Sending the message, asking for password
     struct pam_response *response = NULL;
     memset (&response, 0, sizeof(response));
-    result = (conv->conv) (1, msgs, &response, conv->appdata_ptr);
+    result = (conv->conv) (1, NULL, &response, conv->appdata_ptr);
     if (result != PAM_SUCCESS) {
         goto cleanup;
     }
