@@ -2,7 +2,7 @@ project(pam_kwallet)
 cmake_minimum_required(VERSION 3.16)
 set(KF6_MIN_VERSION "5.240.0")
 set(KDE_COMPILERSETTINGS_LEVEL "5.82")
-set(PROJECT_VERSION "5.92.0")
+set(PROJECT_VERSION "6.0.80")
 set(PROJECT_VERSION_MAJOR 6)
 
 set(CMAKE_CXX_STANDARD 20)
