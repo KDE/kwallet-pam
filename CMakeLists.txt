@@ -43,9 +43,12 @@ set(pam_kwallet_SRCS
    pam_kwallet.c
 )
 
-find_package(KF6 ${KF6_MIN_VERSION} REQUIRED COMPONENTS
+if (NOT KWALLETD_BIN_PATH)
+  message (STATUS "KWALLETD_BIN_PATH not set, trying KF6::Wallet")
+  find_package(KF6 ${KF6_MIN_VERSION} REQUIRED COMPONENTS
     Wallet
-)
+  )
+endif ()
 
 add_definitions(-DKWALLETD_BIN_PATH="${KWALLETD_BIN_PATH}")
 
