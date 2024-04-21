@@ -15,6 +15,7 @@ include(CheckFunctionExists)
 include(KDEInstallDirs)
 include(KDEClangFormat)
 include(ECMConfiguredInstall)
+include(KDEGitCommitHooks)
 
 find_package(PAM REQUIRED)
 find_package(LibGcrypt 1.5.0 REQUIRED)
@@ -89,6 +90,8 @@ target_link_libraries (${library_name}
 # add clang-format target for all our real source files
 file(GLOB_RECURSE ALL_CLANG_FORMAT_SOURCE_FILES *.cpp *.h)
 kde_clang_format(${ALL_CLANG_FORMAT_SOURCE_FILES})
+
+kde_configure_git_pre_commit_hook(CHECKS CLANG_FORMAT)
 
 install(TARGETS ${library_name} DESTINATION ${KDE_INSTALL_LIBDIR}/security)
 
