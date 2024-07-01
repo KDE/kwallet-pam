@@ -18,7 +18,8 @@ include(ECMConfiguredInstall)
 include(KDEGitCommitHooks)
 
 find_package(PAM REQUIRED)
-find_package(LibGcrypt 1.5.0 REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBGCRYPT REQUIRED IMPORTED_TARGET libgcrypt)
 
 find_program(SOCAT_EXECUTABLE socat)
 
@@ -32,7 +33,6 @@ include_directories (
    ${PAM_INCLUDE_DIR}
    ${CMAKE_BINARY_DIR}
    ${CMAKE_CURRENT_BINARY_DIR}
-   ${LIBGCRYPT_INCLUDE_DIR}
 )
 
 add_definitions(-DQT_DISABLE_DEPRECATED_BEFORE=0x050c00)
@@ -84,7 +84,7 @@ add_library (${library_name} SHARED ${pam_kwallet_SRCS})
 set_target_properties (${library_name} PROPERTIES PREFIX "")
 target_link_libraries (${library_name}
    ${PAM_LIBRARIES}
-   ${LIBGCRYPT_LIBRARIES}
+   PkgConfig::LIBGCRYPT
 )
 
 # add clang-format target for all our real source files
