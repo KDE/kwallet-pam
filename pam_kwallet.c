@@ -732,7 +732,7 @@ static int readSaltFile(pam_handle_t *pamh, char *path, struct passwd *userInfo,
         const ssize_t bytesRead = read(fd, salt, KWALLET_PAM_SALTSIZE);
         close(fd);
         if (bytesRead != KWALLET_PAM_SALTSIZE) {
-            syslog(LOG_ERR, "%s: Couldn't read the full salt file contents from file. %d:%d", logPrefix, bytesRead, KWALLET_PAM_SALTSIZE);
+            syslog(LOG_ERR, "%s: Couldn't read the full salt file contents from file. %zd:%d", logPrefix, bytesRead, KWALLET_PAM_SALTSIZE);
             exit(-1);
         }
 
