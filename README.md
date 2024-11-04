@@ -16,8 +16,8 @@ kwalletd receives this, sets the environment variables and continues into the no
 
 The session env is needed as if we launch pre session various important env vars are not set and kwalletd is a graphical app.
 
-## How to install:
+## Setup
 
 ```sh
-apt install -y libpam-kwallet5 
+apt install libpam-kwallet5 
 ```
