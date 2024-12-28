@@ -16,6 +16,7 @@ include(KDEInstallDirs)
 include(KDEClangFormat)
 include(ECMConfiguredInstall)
 include(KDEGitCommitHooks)
+include(ECMDeprecationSettings)
 
 find_package(PAM REQUIRED)
 find_package(PkgConfig REQUIRED)
@@ -35,8 +36,9 @@ include_directories (
    ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-add_definitions(-DQT_DISABLE_DEPRECATED_BEFORE=0x050c00)
-add_definitions(-DKF_DISABLE_DEPRECATED_BEFORE_AND_AT=0x054200)
+ecm_set_disabled_deprecation_versions(QT 6.8.1
+    KF 6.9.0
+)
 
 set(library_name "pam_kwallet5")
 
