@@ -369,13 +369,13 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
     struct sockaddr_un local = {};
     local.sun_family = AF_UNIX;
 
-    if (strlen(fullSocket) > sizeof(local.sun_path)) {
+    if (strlen(fullSocket) >= sizeof(local.sun_path)) {
         syslog(LOG_ERR, "%s: socket path %s too long to open",
                    logPrefix, fullSocket);
         free(fullSocket);
         goto cleanup;
     }
-    strcpy(local.sun_path, fullSocket);
+    snprintf(local.sun_path, sizeof(local.sun_path), "%s", fullSocket);
     unlink(local.sun_path);//Just in case it exists from a previous login
 
     syslog(LOG_DEBUG, "%s: final socket path: %s", logPrefix, local.sun_path);
@@ -405,9 +405,9 @@ static void execute_kwallet(pam_handle_t *pamh, struct passwd *userInfo, int toW
 
     //TODO use a pam argument for full path kwalletd
     char pipeInt[4];
-    sprintf(pipeInt, "%d", toWalletPipe[0]);
+    snprintf(pipeInt, sizeof(pipeInt), "%d", toWalletPipe[0]);
     char sockIn[4];
-    sprintf(sockIn, "%d", envSocket);
+    snprintf(sockIn, sizeof(sockIn), "%d", envSocket);
 
     char *args[] = {strdup(kwalletd), "--pam-login", pipeInt, sockIn, NULL, NULL};
     execve(args[0], args, pam_getenvlist(pamh));
@@ -785,7 +785,7 @@ int kwallet_hash(pam_handle_t *pamh, const char *passphrase, struct passwd *user
     const char *fixpath = "kwalletd/kdewallet.salt";
     size_t pathSize = strlen(userInfo->pw_dir) + strlen(kdehome) + strlen(fixpath) + 3;//3 == /, / and \0
     char *path = (char*) malloc(pathSize);
-    sprintf(path, "%s/%s/%s", userInfo->pw_dir, kdehome, fixpath);
+    snprintf(path, pathSize, "%s/%s/%s", userInfo->pw_dir, kdehome, fixpath);
 
     createNewSalt(pamh, path, userInfo);
 
