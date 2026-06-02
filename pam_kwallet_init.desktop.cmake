@@ -48,6 +48,7 @@ Name[sr@latin]=Veza sa K‑novčanikovim PAM soketom
 Name[sv]=Plånbokens PAM-uttagsanslutning
 Name[tg]=Пайвасти бастагоҳи KWallet PAM
 Name[tr]=K Cüzdan PAM Yuvası Bağlantısı
+Name[ug]=KWallet PAM ئۇلاق باغلىنىشى
 Name[uk]=З’єднання із сокетом PAM KWallet
 Name[vi]=Kết nối ổ cắm PAM KWallet
 Name[zh_CN]=KWallet PAM 套接字连接
