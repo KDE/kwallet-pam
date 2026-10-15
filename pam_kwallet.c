@@ -567,8 +567,13 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, cons
     result = pam_get_data(pamh, kwalletPamDataKey, (const void **)&password);
 
     if (result != PAM_SUCCESS) {
-        pam_syslog(pamh, LOG_INFO, "%s: open_session called without %s", logPrefix, kwalletPamDataKey);
-        return PAM_IGNORE;
+        // Try to fall back to PAM_AUTHTOK, it may have been set by a previous module.
+        password = NULL;
+        result = pam_get_item(pamh, PAM_AUTHTOK, (const void **)&password);
+        if (result != PAM_SUCCESS || !password) {
+            pam_syslog(pamh, LOG_INFO, "%s: open_session called without %s nor PAM_AUTHTOK", logPrefix, kwalletPamDataKey);
+            return PAM_IGNORE;
+        }
     }
 
     char *key = malloc(KWALLET_PAM_KEYSIZE);
