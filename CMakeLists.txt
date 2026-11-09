@@ -36,7 +36,7 @@ include_directories (
 )
 
 ecm_set_disabled_deprecation_versions(QT 6.11.0
-    KF 6.29.0
+    KF 6.32.0
 )
 
 set(library_name "pam_kwallet5")
